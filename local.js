@@ -24,6 +24,8 @@ function connect (blockId, callback) {
       let txId = tx.getId()
 
       tx.ins.forEach(({ hash, index: vout }, vin) => {
+        if (bitcoin.Transaction.isCoinbaseHash(hash)) return
+
         let prevTxId = hash.reverse().toString('hex')
 
         atomic.put(types.txInIndex, { txId: prevTxId, vout }, { txId, vin })
@@ -62,6 +64,8 @@ function disconnect (blockId, callback) {
       let txId = tx.getId()
 
       tx.ins.forEach(({ hash, index: vout }) => {
+        if (bitcoin.Transaction.isCoinbaseHash(hash)) return
+
         let prevTxId = hash.reverse().toString('hex')
 
         atomic.del(types.txInIndex, { txId: prevTxId, vout })
