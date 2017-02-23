@@ -1,0 +1,25 @@
+{
+  "name": "indexd",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "bitcoinjs-lib": "^2.3.0",
+    "debug": "^2.6.0",
+    "dotenv": "^4.0.0",
+    "level": "^1.5.0",
+    "once": "^1.4.0",
+    "qup": "^1.2.1",
+    "varstruct": "^6.0.0",
+    "yajrpc": "^1.2.4",
+    "zmq": "^2.15.3"
+  },
+  "devDependencies": {
+    "bytes": "^2.4.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Daniel Cousens",
+  "license": "ISC"
+}
