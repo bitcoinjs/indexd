@@ -1,6 +1,6 @@
 require('dotenv').load()
 
-let debug = require('debug')('sync')
+let debug = require('debug')('index')
 let local = require('./local')
 let parallel = require('run-parallel')
 let rpc = require('./rpc')

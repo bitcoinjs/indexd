@@ -1,4 +1,5 @@
 let bitcoin = require('bitcoinjs-lib')
+let debug = require('debug')('local')
 let ldb = require('./ldb')
 let parallel = require('run-parallel')
 let rpc = require('./rpc')
@@ -38,6 +39,7 @@ function connect (blockId, callback) {
       atomic.put(types.txIndex, txId, { height })
     })
 
+    debug(`Putting ${blockId} - ${atomic.ops()} leveldb ops`)
     atomic.put(types.tip, NOTHING, blockId)
       .write((err) => callback(err, nextblockhash))
   })
@@ -75,6 +77,7 @@ function disconnect (blockId, callback) {
       atomic.put(types.txIndex, txId, { height })
     })
 
+    debug(`Deleting ${blockId} - ${atomic.ops()} leveldb ops`)
     atomic.put(types.tip, NOTHING, previousblockhash)
       .write(callback)
   })

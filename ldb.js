@@ -70,6 +70,7 @@ function atomic () {
       del(batch, type, key)
       return batch
     },
+    ops: () => batch.length,
     put: (type, key, value) => {
       put(batch, type, key, value)
       return batch
