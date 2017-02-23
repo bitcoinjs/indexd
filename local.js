@@ -3,10 +3,6 @@ let ldb = require('./ldb')
 let parallel = require('run-parallel')
 let rpc = require('./rpc')
 let types = require('./types')
-let { EventEmitter } = require('events')
-
-let emitter = new EventEmitter()
-emitter.setMaxListeners(Infinity)
 
 let NOTHING = Buffer.alloc(0)
 
@@ -88,7 +84,10 @@ function disconnect (blockId, callback) {
 function see () {}
 
 function tip (callback) {
-  ldb.get(types.tip, NOTHING, callback)
+  ldb.get(types.tip, NOTHING, (err, blockId) => {
+    if (err && err.notFound) return callback()
+    callback(err, blockId)
+  })
 }
 
 module.exports = {
