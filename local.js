@@ -84,9 +84,8 @@ function disconnect (blockId, callback) {
   })
 }
 
-function see (_, callback) {
-  callback()
-}
+// TODO
+function see () {}
 
 function tip (callback) {
   ldb.get(types.tip, NOTHING, callback)

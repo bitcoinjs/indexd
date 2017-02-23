@@ -80,4 +80,7 @@ function sync (err, callback) {
 }
 
 zmq.on('hashblock', () => sync())
-zmq.on('hashtx', (txId) => local.see(txId))
+zmq.on('hashtx', (txId) => () => {
+  debug(`Seen ${txId} ${Date.now()}`)
+  local.see(txId)
+})
