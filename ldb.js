@@ -1,7 +1,10 @@
 let debug = require('debug')('leveldb')
 let level = require('level')
 let once = require('once')
-let ldb = level(process.env.LEVELDB)
+let ldb = level(process.env.LEVELDB, {
+  keyEncoding: 'binary',
+  valueEncoding: 'binary'
+})
 
 function del (batch, type, key, callback) {
   key = type.key.encode(key)
