@@ -84,3 +84,7 @@ zmq.on('hashtx', (txId) => () => {
   debug(`Seen ${txId} ${Date.now()}`)
   local.see(txId)
 })
+
+sync(null, (err) => {
+  if (err) throw err
+})
