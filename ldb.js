@@ -1,3 +1,4 @@
+let debug = require('debug')('leveldb')
 let level = require('level')
 let once = require('once')
 let ldb = level(process.env.LEVELDB)
@@ -10,6 +11,7 @@ function del (batch, type, key, callback) {
     key = Buffer.concat([type.prefix, key])
   }
 
+  debug(`del ${key.toString('hex')}`)
   batch.del(key, callback)
 }
 
@@ -21,6 +23,7 @@ function get (type, key, callback) {
     key = Buffer.concat([type.prefix, key])
   }
 
+  debug(`get ${key.toString('hex')}`)
   ldb.get(key, (err, value) => {
     if (err) return callback(err)
 
@@ -37,6 +40,7 @@ function put (batch, type, key, value, callback) {
     key = Buffer.concat([type.prefix, key])
   }
 
+  debug(`put ${key.toString('hex')}`)
   batch.put(key, value, callback)
 }
 
