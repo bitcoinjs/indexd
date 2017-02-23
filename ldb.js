@@ -7,7 +7,7 @@ function del (batch, type, key, callback) {
   key = type.key.encode(key)
   if (callback) callback = once(callback)
 
-  if (type.prefix) {
+  if (type.prefix && type.prefix.length) {
     key = Buffer.concat([type.prefix, key])
   }
 
@@ -19,7 +19,7 @@ function get (type, key, callback) {
   key = type.key.encode(key)
   callback = once(callback)
 
-  if (type.prefix) {
+  if (type.prefix && type.prefix.length) {
     key = Buffer.concat([type.prefix, key])
   }
 
@@ -40,7 +40,7 @@ function put (batch, type, key, value, callback) {
     key = Buffer.concat([type.prefix, key])
   }
 
-  debug(`put ${key.toString('hex')}`)
+  debug(`put ${key.toString('hex')}|${value.toString('hex')}`)
   batch.put(key, value, callback)
 }
 
