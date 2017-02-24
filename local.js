@@ -7,15 +7,10 @@ let types = require('./types')
 
 let NOTHING = Buffer.alloc(0)
 
-function connect (blockId, callback) {
-  parallel({
-    header: (f) => rpc('getblockheader', [blockId], f),
-    hex: (f) => rpc('getblock', [blockId, false], f)
-  }, (err, result) => {
+function connect (blockId, height, callback) {
+  rpc('getblock', [blockId, false], (err, hex) => {
     if (err) return callback(err)
 
-    let { header, hex } = result
-    let { height, nextblockhash } = header
     let block = bitcoin.Block.fromHex(hex)
     let { transactions } = block
 
@@ -43,8 +38,7 @@ function connect (blockId, callback) {
     })
 
     debug(`Putting ${blockId} @${height} - ${atomic.ops()} leveldb ops`)
-    atomic.put(types.tip, NOTHING, blockId)
-      .write((err) => callback(err, nextblockhash))
+    atomic.put(types.tip, NOTHING, blockId).write(callback)
   })
 }
 

@@ -7,20 +7,21 @@ let rpc = require('./rpc')
 let zmq = require('./zmq')
 
 // recursively calls connectBlock(id) until `bitcoind[id].next` is falsy
-function connectBlock (id, callback) {
-  debug(`Connecting ${id}`)
+function connectBlock (id, height, callback) {
+  debug(`Connecting ${id} @${height}`)
 
   rpc('getblockheader', [id], (err, header) => {
     if (err) return callback(err)
+    if (header.height !== height) return callback(new Error('Height mismatch'))
 
     local.connect(id, (err) => {
       if (err) return callback(err)
 
-      debug(`Connected ${id} @${header.height}`)
+      debug(`Connected ${id} @${height}`)
       if (!header.nextblockhash) return callback()
 
       // recurse until next is falsy
-      connectBlock(header.nextblockhash, callback)
+      connectBlock(header.nextblockhash, height + 1, callback)
     })
   })
 }
@@ -52,7 +53,7 @@ function sync (err, callback) {
       return rpc('getblockhash', [0], (err, genesisId) => {
         if (err) return callback(err)
 
-        connectBlock(genesisId, callback)
+        connectBlock(genesisId, 0, callback)
       })
     }
 
@@ -74,7 +75,7 @@ function sync (err, callback) {
 
       // behind
       debug('bitcoind is ahead')
-      connectBlock(common.nextblockhash, callback)
+      connectBlock(common.nextblockhash, common.height + 1, callback)
     })
   })
 }
