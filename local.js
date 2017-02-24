@@ -41,7 +41,7 @@ function connect (blockId, callback) {
       atomic.put(types.txIndex, txId, { height })
     })
 
-    debug(`Putting ${blockId} - ${atomic.ops()} leveldb ops`)
+    debug(`Putting ${blockId} @${height} - ${atomic.ops()} leveldb ops`)
     atomic.put(types.tip, NOTHING, blockId)
       .write((err) => callback(err, nextblockhash))
   })
