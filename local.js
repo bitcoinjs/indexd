@@ -9,13 +9,14 @@ let NOTHING = Buffer.alloc(0)
 
 function connect (blockId, callback) {
   parallel({
-    blockHeader: (f) => rpc('getblockheader', [blockId], f),
-    blockHex: (f) => rpc('getblock', [blockId, false], f)
+    header: (f) => rpc('getblockheader', [blockId], f),
+    hex: (f) => rpc('getblock', [blockId, false], f)
   }, (err, result) => {
     if (err) return callback(err)
 
-    let { height, nextblockhash } = result.blockHeader
-    let block = bitcoin.Block.fromHex(result.blockHex)
+    let { header, hex } = result
+    let { height, nextblockhash } = header
+    let block = bitcoin.Block.fromHex(hex)
     let { transactions } = block
 
     let atomic = ldb.atomic()
