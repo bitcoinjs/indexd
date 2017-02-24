@@ -8,23 +8,15 @@ let scId = Hex64
 let height = vstruct.UInt32BE // big-endian for lexicographical sort
 let vout = vstruct.UInt32LE
 let satoshis = vstruct.DoubleLE
-let feeIQR = vstruct([
-  ['q1', satoshis],
-  ['median', satoshis],
-  ['q3', satoshis]
-])
 
-let fees = {
-  prefix: 0x01,
-  key: height,
-  value: vstruct([
-    ['size', vstruct.UInt32LE],
-    ['fees', feeIQR]
-  ])
+let tip = {
+  prefix: 0x00,
+  key: NOTHING,
+  value: blockId
 }
 
 let scIndex = {
-  prefix: 0x02,
+  prefix: 0x01,
   key: vstruct([
     ['scId', scId],
     ['height', height],
@@ -34,16 +26,8 @@ let scIndex = {
   value: NOTHING
 }
 
-let txIndex = {
-  prefix: 0x03,
-  key: txId,
-  value: vstruct([
-    ['height', height]
-  ])
-}
-
-let txInIndex = {
-  prefix: 0x04,
+let spentIndex = {
+  prefix: 0x02,
   key: vstruct([
     ['txId', txId],
     ['vout', vout]
@@ -54,8 +38,16 @@ let txInIndex = {
   ])
 }
 
+let txIndex = {
+  prefix: 0x03,
+  key: txId,
+  value: vstruct([
+    ['height', height]
+  ])
+}
+
 let txOutIndex = {
-  prefix: 0x05,
+  prefix: 0x04,
   key: vstruct([
     ['txId', txId],
     ['vout', vout]
@@ -65,17 +57,25 @@ let txOutIndex = {
   ])
 }
 
-let tip = {
-  prefix: 0x06,
-  key: NOTHING,
-  value: blockId
-}
+// TODO
+// let feeIQR = vstruct([
+//   ['q1', satoshis],
+//   ['median', satoshis],
+//   ['q3', satoshis]
+// ])
+// let fees = {
+//   prefix: 0x11,
+//   key: height,
+//   value: vstruct([
+//     ['size', vstruct.UInt32LE],
+//     ['fees', feeIQR]
+//   ])
+// }
 
 module.exports = {
-  fees,
   scIndex,
+  spentIndex,
   txIndex,
-  txInIndex,
   txOutIndex,
   tip
 }

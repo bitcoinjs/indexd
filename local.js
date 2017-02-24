@@ -21,7 +21,7 @@ function connectRaw (id, height, hex, callback) {
 
       let prevTxId = hash.reverse().toString('hex')
 
-      atomic.put(types.txInIndex, { txId: prevTxId, vout }, { txId, vin })
+      atomic.put(types.spentIndex, { txId: prevTxId, vout }, { txId, vin })
     })
 
     tx.outs.forEach(({ script, value }, vout) => {
@@ -67,7 +67,7 @@ function disconnect (blockId, callback) {
 
         let prevTxId = hash.reverse().toString('hex')
 
-        atomic.del(types.txInIndex, { txId: prevTxId, vout })
+        atomic.del(types.spentIndex, { txId: prevTxId, vout })
       })
 
       tx.outs.forEach(({ script }, vout) => {

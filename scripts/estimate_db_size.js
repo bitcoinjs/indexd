@@ -39,7 +39,7 @@ console.log('Default', bytes(
     typeSize(types.txIndex) +
 
     (inputsPerTx * (
-      typeSize(types.txInIndex) +
+      typeSize(types.spentIndex) +
       0
     )) +
 
