@@ -7,38 +7,42 @@ let types = require('./types')
 
 let NOTHING = Buffer.alloc(0)
 
-function connect (blockId, height, callback) {
-  rpc('getblock', [blockId, false], (err, hex) => {
-    if (err) return callback(err)
+function connectRaw (id, height, hex, callback) {
+  let block = bitcoin.Block.fromHex(hex)
+  let { transactions } = block
 
-    let block = bitcoin.Block.fromHex(hex)
-    let { transactions } = block
+  let atomic = ldb.atomic()
 
-    let atomic = ldb.atomic()
+  transactions.forEach((tx) => {
+    let txId = tx.getId()
 
-    transactions.forEach((tx) => {
-      let txId = tx.getId()
+    tx.ins.forEach(({ hash, index: vout }, vin) => {
+      if (bitcoin.Transaction.isCoinbaseHash(hash)) return
 
-      tx.ins.forEach(({ hash, index: vout }, vin) => {
-        if (bitcoin.Transaction.isCoinbaseHash(hash)) return
+      let prevTxId = hash.reverse().toString('hex')
 
-        let prevTxId = hash.reverse().toString('hex')
-
-        atomic.put(types.txInIndex, { txId: prevTxId, vout }, { txId, vin })
-      })
-
-      tx.outs.forEach(({ script, value }, vout) => {
-        let scId = bitcoin.crypto.sha256(script).toString('hex')
-
-        atomic.put(types.scIndex, { scId, height, txId, vout }, NOTHING)
-        atomic.put(types.txOutIndex, { txId, vout }, { value })
-      })
-
-      atomic.put(types.txIndex, txId, { height })
+      atomic.put(types.txInIndex, { txId: prevTxId, vout }, { txId, vin })
     })
 
-    debug(`Putting ${blockId} @${height} - ${atomic.ops()} leveldb ops`)
-    atomic.put(types.tip, NOTHING, blockId).write(callback)
+    tx.outs.forEach(({ script, value }, vout) => {
+      let scId = bitcoin.crypto.sha256(script).toString('hex')
+
+      atomic.put(types.scIndex, { scId, height, txId, vout }, NOTHING)
+      atomic.put(types.txOutIndex, { txId, vout }, { value })
+    })
+
+    atomic.put(types.txIndex, txId, { height })
+  })
+
+  debug(`Putting ${id} @${height} - ${atomic.ops()} leveldb ops`)
+  atomic.put(types.tip, NOTHING, id).write(callback)
+}
+
+function connect (id, height, callback) {
+  rpc('getblock', [id, false], (err, hex) => {
+    if (err) return callback(err)
+
+    connectRaw(id, height, hex, callback)
   })
 }
 
