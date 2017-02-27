@@ -7,7 +7,7 @@ let txId = Hex64
 let scId = Hex64
 let height = vstruct.UInt32BE // big-endian for lexicographical sort
 let vout = vstruct.UInt32LE
-let satoshis = vstruct.DoubleLE
+let satoshis = vstruct.UInt64LE
 
 let tip = {
   prefix: 0x00,
