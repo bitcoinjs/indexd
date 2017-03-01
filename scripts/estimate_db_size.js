@@ -32,9 +32,6 @@ function typeSize (type) {
 
 console.log('Default', bytes(
   typeSize(types.tip) +
-  (nBlocks * (
-    typeSize(types.fees)
-  )) +
   (nTransactions * (
     typeSize(types.txIndex) +
 
