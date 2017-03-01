@@ -37,10 +37,9 @@ function disconnectBlock (id, callback) {
   })
 }
 
-function sync (err, callback) {
-  if (err) return callback(err)
-
+function sync (callback) {
   debug('Checking bitcoind/local chains')
+
   parallel({
     bitcoind: (f) => rpc('getbestblockhash', [], f),
     local: (f) => local.tip(f)
@@ -69,7 +68,11 @@ function sync (err, callback) {
         (!err && common.confirmations === -1)
       ) {
         debug('local is forked')
-        return disconnectBlock(tips.local, sync)
+        return disconnectBlock(tips.local, (err) => {
+          if (err) return callback(err)
+
+          sync(null, callback)
+        })
       }
       if (err) return callback(err)
 
@@ -80,12 +83,14 @@ function sync (err, callback) {
   })
 }
 
-zmq.on('hashblock', () => sync())
+function debugIfErr (err) {
+  if (err) debug(err)
+}
+
+zmq.on('hashblock', () => sync(debugIfErr))
 zmq.on('hashtx', (txId) => () => {
   debug(`Seen ${txId} ${Date.now()}`)
   local.see(txId)
 })
 
-sync(null, (err) => {
-  if (err) throw err
-})
+sync(debugIfErr)
