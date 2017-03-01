@@ -10,7 +10,9 @@ let vout = vstruct.UInt32LE
 let satoshis = vstruct.UInt64LE
 
 let tip = {
-  key: vstruct.Value(vstruct.UInt8, 0x00),
+  key: vstruct([
+    ['prefix', vstruct.Value(vstruct.UInt8, 0x00)]
+  ]),
   value: blockId
 }
 
