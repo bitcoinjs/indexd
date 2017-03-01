@@ -11,7 +11,7 @@
     "once": "^1.4.0",
     "qup": "^1.2.1",
     "run-parallel": "^1.1.6",
-    "varstruct": "^6.0.0",
+    "varstruct": "^6.1.0",
     "yajrpc": "^1.2.4",
     "zmq": "^2.15.3"
   },

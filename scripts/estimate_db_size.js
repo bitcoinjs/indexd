@@ -27,7 +27,7 @@ let vin = 0
 let all = { height, vout, blockId, txId, scId, txProx, scProx, value, fees, size, vin }
 
 function typeSize (type) {
-  return 12 + type.prefix.length + type.key.encodingLength(all) + type.value.encodingLength(all)
+  return 12 + type.key.encodingLength(all) + type.value.encodingLength(all)
 }
 
 console.log('Default', bytes(
