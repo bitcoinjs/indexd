@@ -5,8 +5,10 @@ let ldb = level(process.env.LEVELDB, {
   keyEncoding: 'binary',
   valueEncoding: 'binary'
 })
+let typeforce = require('typeforce')
 
 function del (batch, type, key, callback) {
+  typeforce(type.keyType, key)
   key = type.key.encode(key)
   if (callback) callback = once(callback)
 
@@ -15,6 +17,7 @@ function del (batch, type, key, callback) {
 }
 
 function get (type, key, callback) {
+  typeforce(type.keyType, key)
   key = type.key.encode(key)
   callback = once(callback)
 
@@ -27,7 +30,9 @@ function get (type, key, callback) {
 }
 
 function put (batch, type, key, value, callback) {
+  typeforce(type.keyType, key)
   key = type.key.encode(key)
+  typeforce(type.valueType, value)
   value = type.value.encode(value)
   if (callback) callback = once(callback)
 
