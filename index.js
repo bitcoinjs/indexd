@@ -71,7 +71,7 @@ function sync (callback) {
         return disconnectBlock(tips.local, (err) => {
           if (err) return callback(err)
 
-          sync(null, callback)
+          sync(callback)
         })
       }
       if (err) return callback(err)
