@@ -88,7 +88,7 @@ function disconnect (blockId, callback) {
 function see () {}
 
 function tip (callback) {
-  ldb.get(types.tip, null, (err, blockId) => {
+  ldb.get(types.tip, {}, (err, blockId) => {
     if (err && err.notFound) return callback()
     callback(err, blockId)
   })
