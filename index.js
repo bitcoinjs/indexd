@@ -17,7 +17,7 @@ function connectBlock (id, height, callback) {
     local.connect(id, height, (err) => {
       if (err) return callback(err)
 
-      debug(`Connected ${id} @ ${height} ${header.nextblockhash ? '...' : ''}`)
+      debug(`Connected ${id} @ ${height}`)
       if (!header.nextblockhash) return callback()
 
       // recurse until next is falsy
