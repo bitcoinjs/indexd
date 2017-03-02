@@ -88,9 +88,9 @@ function debugIfErr (err) {
 }
 
 zmq.on('hashblock', () => sync(debugIfErr))
-zmq.on('hashtx', (txId) => () => {
-  debug(`Seen ${txId} ${Date.now()}`)
-  local.see(txId)
-})
+// zmq.on('hashtx', (txId) => {
+//   debug(`Seen ${txId} ${Date.now()}`)
+//   local.see(txId)
+// })
 
 sync(debugIfErr)
