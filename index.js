@@ -8,7 +8,7 @@ let zmq = require('./zmq')
 
 // recursively calls connectBlock(id) until `bitcoind[id].next` is falsy
 function connectBlock (id, height, callback) {
-  debug(`Connecting ${id} @${height}`)
+  debug(`Connecting ${id} @ ${height}`)
 
   rpc('getblockheader', [id], (err, header) => {
     if (err) return callback(err)
@@ -17,7 +17,7 @@ function connectBlock (id, height, callback) {
     local.connect(id, height, (err) => {
       if (err) return callback(err)
 
-      debug(`Connected ${id} @${height}`)
+      debug(`Connected ${id} @ ${height}`)
       if (!header.nextblockhash) return callback()
 
       // recurse until next is falsy
