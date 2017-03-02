@@ -14,7 +14,7 @@ function connectBlock (id, height, callback) {
     if (err) return callback(err)
     if (header.height !== height) return callback(new Error('Height mismatch'))
 
-    local.connect(id, (err) => {
+    local.connect(id, height, (err) => {
       if (err) return callback(err)
 
       debug(`Connected ${id} @${height}`)
