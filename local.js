@@ -32,7 +32,7 @@ function connectRaw (id, height, hex, callback) {
     atomic.put(types.txIndex, { txId }, { height })
   })
 
-  debug(`Putting ${id} @${height} - ${atomic.ops()} leveldb ops`)
+  debug(`Putting ${id} @ ${height} - ${atomic.ops()} leveldb ops`)
   atomic.put(types.tip, {}, id).write(callback)
 }
 
