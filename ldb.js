@@ -6,10 +6,11 @@ let ldb = level(process.env.LEVELDB, {
   valueEncoding: 'binary'
 })
 let typeforce = require('typeforce')
+let NOTHING = Buffer.alloc(0)
 
 function del (batch, type, key, callback) {
   typeforce(type.keyType, key)
-  key = type.key.encode(key)
+  key = type.key ? type.key.encode(key) : NOTHING
   if (callback) callback = once(callback)
 
   debug(`del ${key.toString('hex')}`)
@@ -18,7 +19,7 @@ function del (batch, type, key, callback) {
 
 function get (type, key, callback) {
   typeforce(type.keyType, key)
-  key = type.key.encode(key)
+  key = type.key ? type.key.encode(key) : NOTHING
   callback = once(callback)
 
   debug(`get ${key.toString('hex')}`)
@@ -30,15 +31,12 @@ function get (type, key, callback) {
   })
 }
 
-let NOTHING = Buffer.alloc(0)
-
 function put (batch, type, key, value, callback) {
   typeforce(type.keyType, key)
-  key = type.key.encode(key)
+  key = type.key ? type.key.encode(key) : NOTHING
 
   typeforce(type.valueType, value)
-  if (type.value) value = type.value.encode(value)
-  else value = NOTHING
+  value = type.value ? type.value.encode(value) : NOTHING
   if (callback) callback = once(callback)
 
   debug(`put ${key.toString('hex')}|${value.toString('hex')}`)
@@ -57,8 +55,8 @@ function iterator (type, options, forEach, callback) {
   ldb.createReadStream(options)
   .on('data', ({ key, value }) => {
     if (!options.raw) {
-      key = type.key.decode(key)
-      value = type.value.decode(value)
+      key = type.key ? type.key.encode(key) : NOTHING
+      value = type.value ? type.value.decode(value) : null
     }
 
     forEach(key, value)
