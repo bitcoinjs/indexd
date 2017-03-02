@@ -1,7 +1,6 @@
 let typeforce = require('typeforce')
 let vstruct = require('varstruct')
 
-let NOTHING = vstruct.Buffer(0)
 let Hex64 = vstruct.String(32, 'hex')
 let Hex64t = typeforce.HexN(64)
 let blockId = Hex64
@@ -35,7 +34,7 @@ let scIndex = {
     ['vout', vout]
   ]),
   valueType: typeforce.Null,
-  value: NOTHING
+  value: null
 }
 
 let spentIndex = {

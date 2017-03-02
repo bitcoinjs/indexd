@@ -5,8 +5,6 @@ let parallel = require('run-parallel')
 let rpc = require('./rpc')
 let types = require('./types')
 
-let NOTHING = Buffer.alloc(0)
-
 function connectRaw (id, height, hex, callback) {
   let block = bitcoin.Block.fromHex(hex)
   let { transactions } = block
@@ -27,7 +25,7 @@ function connectRaw (id, height, hex, callback) {
     tx.outs.forEach(({ script, value }, vout) => {
       let scId = bitcoin.crypto.sha256(script).toString('hex')
 
-      atomic.put(types.scIndex, { scId, height, txId, vout }, NOTHING)
+      atomic.put(types.scIndex, { scId, height, txId, vout }, null)
       atomic.put(types.txOutIndex, { txId, vout }, { value })
     })
 
@@ -35,7 +33,7 @@ function connectRaw (id, height, hex, callback) {
   })
 
   debug(`Putting ${id} @${height} - ${atomic.ops()} leveldb ops`)
-  atomic.put(types.tip, NOTHING, id).write(callback)
+  atomic.put(types.tip, null, id).write(callback)
 }
 
 function connect (id, height, callback) {
@@ -81,7 +79,7 @@ function disconnect (blockId, callback) {
     })
 
     debug(`Deleting ${blockId} - ${atomic.ops()} leveldb ops`)
-    atomic.put(types.tip, NOTHING, previousblockhash)
+    atomic.put(types.tip, null, previousblockhash)
       .write(callback)
   })
 }
@@ -90,7 +88,7 @@ function disconnect (blockId, callback) {
 function see () {}
 
 function tip (callback) {
-  ldb.get(types.tip, NOTHING, (err, blockId) => {
+  ldb.get(types.tip, null, (err, blockId) => {
     if (err && err.notFound) return callback()
     callback(err, blockId)
   })

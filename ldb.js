@@ -24,16 +24,21 @@ function get (type, key, callback) {
   debug(`get ${key.toString('hex')}`)
   ldb.get(key, (err, value) => {
     if (err) return callback(err)
+    if (!type.value) return callback()
 
     callback(null, type.value.decode(value))
   })
 }
 
+let NOTHING = Buffer.alloc(0)
+
 function put (batch, type, key, value, callback) {
   typeforce(type.keyType, key)
   key = type.key.encode(key)
+
   typeforce(type.valueType, value)
-  value = type.value.encode(value)
+  if (type.value) value = type.value.encode(value)
+  else value = NOTHING
   if (callback) callback = once(callback)
 
   debug(`put ${key.toString('hex')}|${value.toString('hex')}`)
