@@ -33,7 +33,7 @@ function connectRaw (id, height, hex, callback) {
   })
 
   debug(`Putting ${id} @${height} - ${atomic.ops()} leveldb ops`)
-  atomic.put(types.tip, null, id).write(callback)
+  atomic.put(types.tip, {}, id).write(callback)
 }
 
 function connect (id, height, callback) {
@@ -79,7 +79,7 @@ function disconnect (blockId, callback) {
     })
 
     debug(`Deleting ${blockId} - ${atomic.ops()} leveldb ops`)
-    atomic.put(types.tip, null, previousblockhash)
+    atomic.put(types.tip, {}, previousblockhash)
       .write(callback)
   })
 }

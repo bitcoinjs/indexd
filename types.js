@@ -11,7 +11,7 @@ let vout = vstruct.UInt32LE
 let satoshis = vstruct.UInt64LE
 
 let tip = {
-  keyType: typeforce.Null,
+  keyType: {},
   key: vstruct([
     ['prefix', vstruct.Value(vstruct.UInt8, 0x00)]
   ]),
