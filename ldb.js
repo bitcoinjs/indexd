@@ -43,28 +43,6 @@ function put (batch, type, key, value, callback) {
   batch.put(key, value, callback)
 }
 
-function iterator (type, options, forEach, callback) {
-  callback = once(callback)
-
-  // TODO: don't mutate
-  if (options.gt) options.gt = type.key.encode(options.gt)
-  if (options.lt) options.lt = type.key.encode(options.lt)
-  if (options.gte) options.gte = type.key.encode(options.gte)
-  if (options.lte) options.lte = type.key.encode(options.lte)
-
-  ldb.createReadStream(options)
-  .on('data', ({ key, value }) => {
-    if (!options.raw) {
-      key = type.key ? type.key.encode(key) : NOTHING
-      value = type.value ? type.value.decode(value) : null
-    }
-
-    forEach(key, value)
-  })
-  .on('end', callback)
-  .on('error', callback)
-}
-
 function atomic () {
   let batch = ldb.batch()
 
@@ -84,7 +62,6 @@ function atomic () {
 
 module.exports = {
   atomic,
-  iterator,
   del: del.bind(null, ldb),
   get,
   put: put.bind(null, ldb)
