@@ -87,7 +87,17 @@ function debugIfErr (err) {
   if (err) debug(err)
 }
 
-zmq.on('hashblock', () => sync(debugIfErr))
+// XXX: limit to 1 synchronization at a time
+let syncing = false
+zmq.on('hashblock', () => {
+  if (syncing) return
+
+  syncing = true
+  sync((err) => {
+    syncing = false
+    debugIfErr(err)
+  })
+})
 // zmq.on('hashtx', (txId) => {
 //   debug(`Seen ${txId} ${Date.now()}`)
 //   local.see(txId)
