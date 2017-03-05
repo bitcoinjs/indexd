@@ -90,9 +90,9 @@ function debugIfErr (err) {
 
 let syncQueue = qup(sync, 1)
 
-syncQueue(null, debugIfErr)
+syncQueue.push(null, debugIfErr)
 zmq.on('hashblock', () => {
-  syncQueue(null, debugIfErr)
+  syncQueue.push(null, debugIfErr)
 })
 
 // zmq.on('hashtx', (txId) => {
