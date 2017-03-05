@@ -3,6 +3,7 @@ require('dotenv').load()
 let debug = require('debug')('index')
 let local = require('./local')
 let parallel = require('run-parallel')
+let qup = require('qup')
 let rpc = require('./rpc')
 let zmq = require('./zmq')
 
@@ -37,7 +38,7 @@ function disconnectBlock (id, callback) {
   })
 }
 
-function sync (callback) {
+function sync (_, callback) {
   debug('Checking bitcoind/local chains')
 
   parallel({
@@ -87,23 +88,14 @@ function debugIfErr (err) {
   if (err) debug(err)
 }
 
-// XXX: limit to 1 synchronization at a time
-let syncing = true
-zmq.on('hashblock', () => {
-  if (syncing) return
+let syncQueue = qup(sync, 1)
 
-  syncing = true
-  sync((err) => {
-    syncing = false
-    debugIfErr(err)
-  })
+syncQueue(null, debugIfErr)
+zmq.on('hashblock', () => {
+  syncQueue(null, debugIfErr)
 })
+
 // zmq.on('hashtx', (txId) => {
 //   debug(`Seen ${txId} ${Date.now()}`)
 //   local.see(txId)
 // })
-
-sync((err) => {
-  debugIfErr(err)
-  syncing = false
-})
