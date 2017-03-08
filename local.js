@@ -1,6 +1,7 @@
 let bitcoin = require('bitcoinjs-lib')
 let dbwrapper = require('./dbwrapper')
 let debug = require('debug')('local')
+let debugMempool = require('debug')('mempool')
 let parallel = require('run-parallel')
 let types = require('./types')
 
@@ -102,6 +103,7 @@ function getOrSetDefault (object, key, defaultValue) {
   return defaultValue
 }
 
+let waiting
 LocalIndex.prototype.see = function (txId, callback) {
   this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
     if (err) return callback(err)
@@ -119,8 +121,17 @@ LocalIndex.prototype.see = function (txId, callback) {
       let scId = bitcoin.crypto.sha256(script).toString('hex')
 
       getOrSetDefault(this.mempool.scripts, scId, []).push({ txId, vout })
-      getOrSetDefault(this.mempool.txouts, `${txId}:${vout}`, []).push({ value })
+      this.mempool.txouts[`${txId}:${vout}`] = { value }
     })
+
+    if (!waiting) {
+      waiting = true
+
+      setTimeout(() => {
+        waiting = false
+        debugMempool(`txouts: ${Object.keys(this.mempool.txouts).length}`)
+      }, 1000)
+    }
 
     callback()
   })
@@ -170,20 +181,17 @@ LocalIndex.prototype.reset = function (callback) {
     txouts: {}
   }
 
-  debug(`Mempool cleared`)
-
+  debugMempool(`Cleared`)
   this.rpc('getrawmempool', [false], (err, actualTxIds) => {
     if (err) return callback(err)
 
-    let tasks = actualTxIds
-      .map(txId => next => this.see(txId, next))
-
-    debug(`Downloading ${actualTxIds.length} transactions`)
+    debugMempool(`Downloading ${actualTxIds.length} transactions`)
+    let tasks = actualTxIds.map(txId => next => this.see(txId, next))
 
     parallel(tasks, (err) => {
       if (err) return callback(err)
 
-      debug(`Mempool reset (${actualTxIds.length} transactions)`)
+      debugMempool(`Downloaded ${actualTxIds.length} transactions`)
       callback()
     })
   })
