@@ -12,7 +12,7 @@ let rpc = require('yajrpc/qup')({
   batch: process.env.RPCBATCHSIZE,
   concurrent: process.env.RPCCONCURRENT
 })
-let zmq = require('./zmq')
+let zmq = require('zmq')
 
 function debugIfErr (err) {
   if (err) debug(err)
@@ -27,13 +27,20 @@ db.open({
 
   let local = localIndex(rpc, db)
   let localSyncQueue = qup((_, next) => resync(rpc, local, next), 1)
+  let zmqSock = zmq.socket('sub')
 
-  zmq.on('hashblock', () => {
-    localSyncQueue.push(null, debugIfErr)
-  })
+  zmqSock.connect(process.env.ZMQ)
+  zmqSock.subscribe('hashblock')
+  zmqSock.subscribe('hashtx')
+  zmqSock.on('message', (topic, message) => {
+    topic = topic.toString('utf8')
+    debug(`zmq ${topic}`)
 
-  zmq.on('hashtx', (txId) => {
-    local.see(txId)
+    if (topic === 'hashblock') return localSyncQueue.push(null, debugIfErr)
+    if (topic !== 'hashtx') return
+
+    let txId = message.toString('hex')
+    local.see(txId, debugIfErr)
   })
 
   localSyncQueue.push(null, debugIfErr)
