@@ -27,8 +27,19 @@ db.open({
 
   let local = localIndex(rpc, db)
   let localSyncQueue = qup((_, next) => resync(rpc, local, next), 1)
-  let zmqSock = zmq.socket('sub')
 
+  function localSyncAndReset (callback) {
+    // maximum 2 waiting
+    if (localSyncQueue.running > 1) return callback()
+
+    localSyncQueue.push(null, (err) => {
+      if (err) return callback(err)
+
+      local.reset(callback)
+    })
+  }
+
+  let zmqSock = zmq.socket('sub')
   zmqSock.connect(process.env.ZMQ)
   zmqSock.subscribe('hashblock')
   zmqSock.subscribe('hashtx')
@@ -36,12 +47,12 @@ db.open({
     topic = topic.toString('utf8')
     debug(`zmq ${topic}`)
 
-    if (topic === 'hashblock') return localSyncQueue.push(null, debugIfErr)
+    if (topic === 'hashblock') return localSyncAndReset(debugIfErr)
     if (topic !== 'hashtx') return
 
     let txId = message.toString('hex')
     local.see(txId, debugIfErr)
   })
 
-  localSyncQueue.push(null, debugIfErr)
+  localSyncAndReset(debugIfErr)
 })

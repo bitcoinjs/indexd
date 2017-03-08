@@ -163,6 +163,24 @@ LocalIndex.prototype.txoutsByScript = function (scIds, height, callback) {
   })
 }
 
+LocalIndex.prototype.reset = function (callback) {
+  this.mempool = {
+    scripts: {},
+    spents: {},
+    txouts: {}
+  }
+
+  this.rpc('getrawmempool', [0], (err, actualTxIds) => {
+    if (err) return callback(err)
+
+    debug(`Resetting mempool w/ ${actualTxIds.length} transactions`)
+    let tasks = actualTxIds
+      .map(txId => next => this.see(txId, next))
+
+    parallel(tasks, callback)
+  })
+}
+
 module.exports = function create (rpc, db) {
   return new LocalIndex(rpc, db)
 }
