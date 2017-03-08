@@ -133,6 +133,36 @@ LocalIndex.prototype.tip = function (callback) {
   })
 }
 
+let BLANK_TXID = '0000000000000000000000000000000000000000000000000000000000000000'
+LocalIndex.prototype.txoutsByScript = function (scIds, height, callback) {
+  let resultMap = {}
+  let tasks = scIds.map((scId) => {
+    return (next) => {
+      this.db.iterator(types.scIndex, {
+        gte: { scId, height, txId: BLANK_TXID, vout: 0 }
+      }, ({ txId, vout }) => {
+        resultMap[`${txId}:${vout}`] = true
+      }, next)
+    }
+  })
+
+  parallel(tasks, (err) => {
+    if (err) return callback(err)
+
+    // merge with mempool
+    scIds.forEach((scId) => {
+      let txOuts = this.mempool.scripts[scId]
+      if (!txOuts) return
+
+      txOuts.forEach(({ txId, vout }) => {
+        resultMap[`${txId}:${vout}`] = true
+      })
+    })
+
+    callback(null, resultMap)
+  })
+}
+
 module.exports = function create (rpc, db) {
   return new LocalIndex(rpc, db)
 }
