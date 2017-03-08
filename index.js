@@ -24,7 +24,7 @@ db.open({
   writeBufferSize: 1 * 1024 * 1024 * 1024
 }, (err) => {
   if (err) return debugIfErr(err)
-  debug('Opened database')
+  debug(`Opened leveldb @ ${process.env.LEVELDB}`)
 
   let local = localIndex(db, rpc)
   let localSyncQueue = qup((_, next) => resync(rpc, local, next), 1)
