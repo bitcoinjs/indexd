@@ -1,6 +1,7 @@
 require('dotenv').load()
 
 let debug = require('debug')('index')
+let debugZmq = require('debug')('zmq')
 let leveldown = require('leveldown')
 let localIndex = require('./local')
 let qup = require('qup')
@@ -45,7 +46,7 @@ db.open({
   zmqSock.subscribe('hashtx')
   zmqSock.on('message', (topic, message) => {
     topic = topic.toString('utf8')
-    debug(`zmq ${topic}`)
+    debugZmq(topic)
 
     if (topic === 'hashblock') return localSyncAndReset(debugIfErr)
     if (topic !== 'hashtx') return
