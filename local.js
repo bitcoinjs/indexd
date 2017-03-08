@@ -1,15 +1,17 @@
 let bitcoin = require('bitcoinjs-lib')
 let debug = require('debug')('local')
-let ldb = require('./ldb')
+let level = require('leveldown')
+let tlevel = require('typed-leveldown')
 let parallel = require('run-parallel')
 let rpc = require('./rpc')
 let types = require('./types')
+let db
 
 function connectRaw (id, height, hex, callback) {
   let block = bitcoin.Block.fromHex(hex)
   let { transactions } = block
 
-  let atomic = ldb.atomic()
+  let atomic = db.atomic()
 
   transactions.forEach((tx) => {
     let txId = tx.getId()
@@ -55,7 +57,7 @@ function disconnect (blockId, callback) {
     let block = bitcoin.Block.fromHex(result.blockHex)
     let { transactions } = block
 
-    let atomic = ldb.atomic()
+    let atomic = db.atomic()
 
     transactions.forEach((tx) => {
       let txId = tx.getId()
@@ -84,11 +86,24 @@ function disconnect (blockId, callback) {
   })
 }
 
+function open (folderName, callback) {
+  db = level()
+  db.open({
+    writeBufferSize: 1 * 1024 * 1024 * 1024
+  }, (err) => {
+    if (err) return callback(err)
+
+    db = tlevel(db)
+    debug('Opened database')
+    callback()
+  })
+}
+
 // TODO
 function see () {}
 
 function tip (callback) {
-  ldb.get(types.tip, {}, (err, blockId) => {
+  db.get(types.tip, {}, (err, blockId) => {
     if (err && err.notFound) return callback()
     callback(err, blockId)
   })
@@ -97,6 +112,7 @@ function tip (callback) {
 module.exports = {
   connect,
   disconnect,
+  open,
   see,
   tip
 }
