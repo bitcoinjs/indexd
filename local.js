@@ -170,14 +170,22 @@ LocalIndex.prototype.reset = function (callback) {
     txouts: {}
   }
 
-  this.rpc('getrawmempool', [0], (err, actualTxIds) => {
+  debug(`Mempool cleared`)
+
+  this.rpc('getrawmempool', [false], (err, actualTxIds) => {
     if (err) return callback(err)
 
-    debug(`Resetting mempool w/ ${actualTxIds.length} transactions`)
     let tasks = actualTxIds
       .map(txId => next => this.see(txId, next))
 
-    parallel(tasks, callback)
+    debug(`Downloading ${actualTxIds.length} transactions`)
+
+    parallel(tasks, (err) => {
+      if (err) return callback(err)
+
+      debug(`Mempool reset (${actualTxIds.length} transactions)`)
+      callback()
+    })
   })
 }
 
