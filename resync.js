@@ -73,7 +73,7 @@ module.exports = function resync (rpc, local, callback) {
 
       // behind
       debug('bitcoind is ahead')
-      connectBlock(local, common.nextblockhash, common.height + 1, callback)
+      connectBlock(rpc, local, common.nextblockhash, common.height + 1, callback)
     })
   })
 }
