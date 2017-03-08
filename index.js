@@ -10,11 +10,10 @@ function debugIfErr (err) {
   if (err) debug(err)
 }
 
-// TODO: return db rather than global
-local.open(process.env.LEVELDB, (err) => {
+local(process.env.LEVELDB, (err, db) => {
   if (err) return debugIfErr(err)
 
-  let syncQueue = qup((next) => sync(local, next), 1)
+  let syncQueue = qup((next) => sync(db, next), 1)
 
   zmq.on('hashblock', () => {
     syncQueue.push(null, debugIfErr)

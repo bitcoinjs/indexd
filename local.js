@@ -1,13 +1,12 @@
 let bitcoin = require('bitcoinjs-lib')
 let debug = require('debug')('local')
-let level = require('leveldown')
-let tlevel = require('typed-leveldown')
+let leveldown = require('leveldown')
 let parallel = require('run-parallel')
 let rpc = require('./rpc')
+let tlevel = require('typed-leveldown')
 let types = require('./types')
-let db
 
-function connectRaw (id, height, hex, callback) {
+function connectRaw (db, id, height, hex, callback) {
   let block = bitcoin.Block.fromHex(hex)
   let { transactions } = block
 
@@ -34,11 +33,11 @@ function connectRaw (id, height, hex, callback) {
     atomic.put(types.txIndex, { txId }, { height })
   })
 
-  debug(`Putting ${id} @ ${height} - ${atomic.ops()} leveldb ops`)
+  debug(`Putting ${id} @ ${height} - ${transactions.length} transactions`)
   atomic.put(types.tip, {}, id).write(callback)
 }
 
-function connect (id, height, callback) {
+function connect (db, id, height, callback) {
   rpc('getblock', [id, false], (err, hex) => {
     if (err) return callback(err)
 
@@ -46,7 +45,7 @@ function connect (id, height, callback) {
   })
 }
 
-function disconnect (blockId, callback) {
+function disconnect (db, blockId, callback) {
   parallel({
     blockHeader: (f) => rpc('getblockheader', [blockId], f),
     blockHex: (f) => rpc('getblock', [blockId, false], f)
@@ -80,39 +79,37 @@ function disconnect (blockId, callback) {
       atomic.put(types.txIndex, { txId }, { height })
     })
 
-    debug(`Deleting ${blockId} - ${atomic.ops()} leveldb ops`)
-    atomic.put(types.tip, {}, previousblockhash)
-      .write(callback)
-  })
-}
-
-function open (folderName, callback) {
-  db = level()
-  db.open({
-    writeBufferSize: 1 * 1024 * 1024 * 1024
-  }, (err) => {
-    if (err) return callback(err)
-
-    db = tlevel(db)
-    debug('Opened database')
-    callback()
+    debug(`Deleting ${blockId} - ${transactions.length} transactions`)
+    atomic.put(types.tip, {}, previousblockhash).write(callback)
   })
 }
 
 // TODO
 function see () {}
 
-function tip (callback) {
+function tip (db, callback) {
   db.get(types.tip, {}, (err, blockId) => {
     if (err && err.notFound) return callback()
     callback(err, blockId)
   })
 }
 
-module.exports = {
-  connect,
-  disconnect,
-  open,
-  see,
-  tip
+module.exports = function open (folderName, callback) {
+  let db = leveldown(folderName)
+
+  db.open({
+    writeBufferSize: 1 * 1024 * 1024 * 1024
+  }, (err) => {
+    if (err) return callback(err)
+    debug('Opened database')
+
+    let tdb = tlevel(db)
+
+    callback(null, {
+      connect: connect.bind(tdb),
+      disconnect: disconnect.bind(tdb),
+      see: see.bind(tdb),
+      tip: tip.bind(tdb)
+    })
+  })
 }
