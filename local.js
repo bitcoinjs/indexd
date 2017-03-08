@@ -1,8 +1,7 @@
 let bitcoin = require('bitcoinjs-lib')
+let dbwrapper = require('./dbwrapper')
 let debug = require('debug')('local')
-let leveldown = require('leveldown')
 let parallel = require('run-parallel')
-let tlevel = require('typed-leveldown')
 let types = require('./types')
 
 function connectBlock (db, id, height, block, callback) {
@@ -33,7 +32,7 @@ function connectBlock (db, id, height, block, callback) {
   atomic.put(types.tip, {}, id).write(callback)
 }
 
-function disconnectBlock ({ db }, id, height, block, callback) {
+function disconnectBlock (db, id, height, block, callback) {
   let atomic = db.atomic()
 
   block.transactions.forEach((tx) => {
@@ -63,58 +62,77 @@ function disconnectBlock ({ db }, id, height, block, callback) {
   atomic.put(types.tip, {}, previousBlockId).write(callback)
 }
 
-function connect ({ db, rpc }, id, height, callback) {
-  rpc('getblock', [id, false], (err, hex) => {
+function LocalIndex (db, bitcoind) {
+  this.db = dbwrapper(db)
+  this.bitcoind = bitcoind
+  this.mempool = {
+    scripts: {},
+    spents: {},
+    txouts: {}
+  }
+}
+
+LocalIndex.prototype.connect = function (blockId, height, callback) {
+  this.rpc('getblock', [blockId, false], (err, hex) => {
     if (err) return callback(err)
 
     let block = bitcoin.Block.fromHex(hex)
-    connectBlock(db, id, height, block, callback)
+    connectBlock(this.db, blockId, height, block, callback)
   })
 }
 
-function disconnect ({ db, rpc }, id, callback) {
+LocalIndex.prototype.disconnect = function (blockId, callback) {
   parallel({
-    header: (f) => rpc('getblockheader', [id], f),
-    hex: (f) => rpc('getblock', [id, false], f)
+    header: (f) => this.rpc('getblockheader', [blockId], f),
+    hex: (f) => this.rpc('getblock', [blockId, false], f)
   }, (err, result) => {
     if (err) return callback(err)
 
     let { height } = result.header
     let block = bitcoin.Block.fromHex(result.hex)
 
-    disconnectBlock(db, id, height, block, callback)
+    disconnectBlock(this.db, blockId, height, block, callback)
   })
 }
 
-// TODO
-function see () {}
+function getOrSetDefault (object, key, defaultValue) {
+  let existing = object[key]
+  if (existing !== undefined) return existing
+  object[key] = defaultValue
+  return defaultValue
+}
 
-function tip ({ db }, callback) {
-  db.get(types.tip, {}, (err, blockId) => {
+LocalIndex.prototype.see = function (txId, callback) {
+  this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
+    if (err) return callback(err)
+
+    let tx = bitcoin.Transaction.fromHex(txHex)
+
+    tx.ins.forEach(({ hash, index: vout }, vin) => {
+      if (bitcoin.Transaction.isCoinbaseHash(hash)) return
+
+      let prevTxId = hash.reverse().toString('hex')
+      getOrSetDefault(this.mempool.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
+    })
+
+    tx.outs.forEach(({ script, value }, vout) => {
+      let scId = bitcoin.crypto.sha256(script).toString('hex')
+
+      getOrSetDefault(this.mempool.scripts, scId, []).push({ txId, vout })
+      getOrSetDefault(this.mempool.txouts, `${txId}:${vout}`, []).push({ value })
+    })
+
+    callback()
+  })
+}
+
+LocalIndex.prototype.tip = function (callback) {
+  this.db.get(types.tip, {}, (err, blockId) => {
     if (err && err.notFound) return callback()
     callback(err, blockId)
   })
 }
 
-module.exports = function open (folderName, rpc, callback) {
-  let db = leveldown(folderName)
-
-  db.open({
-    writeBufferSize: 1 * 1024 * 1024 * 1024
-  }, (err) => {
-    if (err) return callback(err)
-    debug('Opened database')
-
-    let context = {
-      db: tlevel(db),
-      rpc
-    }
-
-    callback(null, {
-      connect: connect.bind(context),
-      disconnect: disconnect.bind(context),
-      see: see.bind(context),
-      tip: tip.bind(context)
-    })
-  })
+module.exports = function create (rpc, db) {
+  return new LocalIndex(rpc, db)
 }

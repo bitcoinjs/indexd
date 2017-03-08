@@ -1,10 +1,10 @@
 require('dotenv').load()
 
 let debug = require('debug')('index')
-let local = require('./local')
-let sync = require('./sync')
+let leveldown = require('leveldown')
+let localIndex = require('./local')
 let qup = require('qup')
-let zmq = require('./zmq')
+let resync = require('./resync')
 let rpc = require('yajrpc/qup')({
   url: process.env.RPC,
   user: process.env.RPCUSER,
@@ -12,25 +12,29 @@ let rpc = require('yajrpc/qup')({
   batch: process.env.RPCBATCHSIZE,
   concurrent: process.env.RPCCONCURRENT
 })
+let zmq = require('./zmq')
 
 function debugIfErr (err) {
   if (err) debug(err)
 }
 
-local(process.env.LEVELDB, rpc, (err, db) => {
+let db = leveldown(process.env.LEVELDB)
+db.open({
+  writeBufferSize: 1 * 1024 * 1024 * 1024
+}, (err) => {
   if (err) return debugIfErr(err)
+  debug('Opened database')
 
-  let syncQueue = qup((next) => sync(rpc, db, next), 1)
+  let local = localIndex(rpc, db)
+  let localSyncQueue = qup((_, next) => resync(rpc, local, next), 1)
 
-  let _zmq = zmq(process.env.ZMQ)
-  _zmq.on('hashblock', () => {
-    syncQueue.push(null, debugIfErr)
+  zmq.on('hashblock', () => {
+    localSyncQueue.push(null, debugIfErr)
   })
 
-//   _zmq.on('hashtx', (txId) => {
-//     debug(`Seen ${txId} ${Date.now()}`)
-//     local.see(txId)
-//   })
+  zmq.on('hashtx', (txId) => {
+    local.see(txId)
+  })
 
-  syncQueue.push(null, debugIfErr)
+  localSyncQueue.push(null, debugIfErr)
 })

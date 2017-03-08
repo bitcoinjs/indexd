@@ -1,0 +1,83 @@
+let typeforce = require('typeforce')
+let NIL = Buffer.alloc(0)
+
+function atomic () {
+  let batch = this.batch()
+
+  return {
+    del: del.bind(batch),
+    put: put.bind(batch),
+    write: (callback) => batch.write(callback)
+  }
+}
+
+function del (type, key, callback) {
+  typeforce(type.keyType, key)
+  key = type.key ? type.key.encode(key) : NIL
+
+  return this.del(key, callback)
+}
+
+function get (type, key, callback) {
+  typeforce(type.keyType, key)
+  key = type.key ? type.key.encode(key) : NIL
+
+  this.get(key, (err, value) => {
+    if (err) return callback(err)
+    if (!type.value) return callback()
+
+    callback(null, type.value.decode(value))
+  })
+}
+
+function put (type, key, value, callback) {
+  typeforce(type.keyType, key)
+  typeforce(type.valueType, value)
+
+  key = type.key ? type.key.encode(key) : NIL
+  value = type.value ? type.value.encode(value) : NIL
+
+  return this.put(key, value, callback)
+}
+
+// function iterator (type, options, forEach, callback) {
+//   typeforce({
+//     gt: type.keyType,
+//     gte: type.keyType,
+//     lt: type.keyType,
+//     lte: type.keyType,
+//     limit: typeforce.Number
+//   }, options)
+//
+//   // don't mutate
+//   options = Object.assign({}, options)
+//   options.gt = options.gt && type.key.encode(options.gt)
+//   options.gte = options.gte && type.key.encode(options.gte)
+//   options.lt = options.lt && type.key.encode(options.lt)
+//   options.lte = options.lte && type.key.encode(options.lte)
+//
+//   let iterator = this.iterator(options)
+//
+//   function loop (err, key, value) {
+//     // NOTE: ignores .end errors, if they occur
+//     if (err) return iterator.end(() => callback(err))
+//     if (key === undefined || value === undefined) return iterator.end(callback)
+//
+//     key = type.key ? type.key.encode(key) : undefined
+//     value = type.value ? type.value.encode(value) : undefined
+//
+//     forEach(key, value)
+//     iterator.next(loop)
+//   }
+//
+//   iterator.next(loop)
+// }
+
+module.exports = function wrap (db) {
+  return {
+    atomic: atomic.bind(db),
+    del: del.bind(db),
+    get: get.bind(db),
+    put: put.bind(db)
+  }
+}
