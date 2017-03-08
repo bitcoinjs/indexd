@@ -54,7 +54,7 @@ function disconnectBlock ({ db }, id, height, block, callback) {
       atomic.del(types.txOutIndex, { txId, vout })
     })
 
-    atomic.put(types.txIndex, { txId }, { height })
+    atomic.del(types.txIndex, { txId }, { height })
   })
 
   // TODO: add helper to bitcoinjs-lib?
