@@ -8,7 +8,6 @@
     "debug": "^2.6.0",
     "dotenv": "^4.0.0",
     "leveldown": "^1.6.0",
-    "once": "^1.4.0",
     "qup": "^1.2.1",
     "run-parallel": "^1.1.6",
     "typed-leveldown": "^1.0.0",
