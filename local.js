@@ -62,14 +62,14 @@ function disconnectBlock (db, id, height, block, callback) {
   atomic.put(types.tip, {}, previousBlockId).write(callback)
 }
 
-function LocalIndex (db, bitcoind) {
+function LocalIndex (db, rpc) {
   this.db = dbwrapper(db)
-  this.bitcoind = bitcoind
   this.mempool = {
     scripts: {},
     spents: {},
     txouts: {}
   }
+  this.rpc = rpc
 }
 
 LocalIndex.prototype.connect = function (blockId, height, callback) {

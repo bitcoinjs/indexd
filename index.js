@@ -25,7 +25,7 @@ db.open({
   if (err) return debugIfErr(err)
   debug('Opened database')
 
-  let local = localIndex(rpc, db)
+  let local = localIndex(db, rpc)
   let localSyncQueue = qup((_, next) => resync(rpc, local, next), 1)
 
   function localSyncAndReset (callback) {
