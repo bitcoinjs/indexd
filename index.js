@@ -1,4 +1,4 @@
 module.exports = {
-  LocalIndex: require('../local'),
+  adapter: require('../adapter'),
   resync: require('../resync')
 }

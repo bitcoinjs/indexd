@@ -63,7 +63,7 @@ function disconnectBlock (db, id, height, block, callback) {
   atomic.put(types.tip, {}, previousBlockId).write(callback)
 }
 
-function LocalIndex (db, rpc) {
+function Adapter (db, rpc) {
   this.db = dbwrapper(db)
   this.mempool = {
     scripts: {},
@@ -73,7 +73,7 @@ function LocalIndex (db, rpc) {
   this.rpc = rpc
 }
 
-LocalIndex.prototype.connect = function (blockId, height, callback) {
+Adapter.prototype.connect = function (blockId, height, callback) {
   this.rpc('getblock', [blockId, false], (err, hex) => {
     if (err) return callback(err)
 
@@ -82,7 +82,7 @@ LocalIndex.prototype.connect = function (blockId, height, callback) {
   })
 }
 
-LocalIndex.prototype.disconnect = function (blockId, callback) {
+Adapter.prototype.disconnect = function (blockId, callback) {
   parallel({
     header: (f) => this.rpc('getblockheader', [blockId], f),
     hex: (f) => this.rpc('getblock', [blockId, false], f)
@@ -104,7 +104,7 @@ function getOrSetDefault (object, key, defaultValue) {
 }
 
 let waiting
-LocalIndex.prototype.see = function (txId, callback) {
+Adapter.prototype.see = function (txId, callback) {
   this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
     if (err) return callback(err)
 
@@ -137,7 +137,7 @@ LocalIndex.prototype.see = function (txId, callback) {
   })
 }
 
-LocalIndex.prototype.tip = function (callback) {
+Adapter.prototype.tip = function (callback) {
   this.db.get(types.tip, {}, (err, blockId) => {
     if (err && err.notFound) return callback()
     callback(err, blockId)
@@ -145,7 +145,7 @@ LocalIndex.prototype.tip = function (callback) {
 }
 
 let BLANK_TXID = '0000000000000000000000000000000000000000000000000000000000000000'
-LocalIndex.prototype.txosByScript = function (scIds, height, callback) {
+Adapter.prototype.txosByScript = function (scIds, height, callback) {
   let resultMap = {}
   let tasks = scIds.map((scId) => {
     return (next) => {
@@ -174,7 +174,7 @@ LocalIndex.prototype.txosByScript = function (scIds, height, callback) {
   })
 }
 
-LocalIndex.prototype.txisByTxos = function (txos, callback) {
+Adapter.prototype.txisByTxos = function (txos, callback) {
   let tasks = []
   for (let x in txos) {
     let txo = txos[x]
@@ -190,7 +190,7 @@ LocalIndex.prototype.txisByTxos = function (txos, callback) {
   parallel(tasks, callback)
 }
 
-LocalIndex.prototype.transactionsByScript = function (scIds, height, callback) {
+Adapter.prototype.transactionsByScript = function (scIds, height, callback) {
   this.txosByScript(scIds, height, (err, txosMap) => {
     if (err) return callback(err)
 
@@ -210,7 +210,7 @@ LocalIndex.prototype.transactionsByScript = function (scIds, height, callback) {
   })
 }
 
-LocalIndex.prototype.reset = function (callback) {
+Adapter.prototype.reset = function (callback) {
   this.mempool = {
     scripts: {},
     spents: {},
@@ -233,6 +233,6 @@ LocalIndex.prototype.reset = function (callback) {
   })
 }
 
-module.exports = function create (rpc, db) {
-  return new LocalIndex(rpc, db)
+module.exports = function makeAdapter (db, rpc) {
+  return new Adapter(db, rpc)
 }

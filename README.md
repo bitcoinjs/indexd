@@ -12,10 +12,9 @@ require('dotenv').load()
 
 let debug = require('debug')('index')
 let debugZmq = require('debug')('zmq')
+let indexd = require('indexd')
 let leveldown = require('leveldown')
-let localIndex = require('../local')
 let qup = require('qup')
-let resync = require('../resync')
 let rpc = require('yajrpc/qup')({
   url: process.env.RPC,
   user: process.env.RPCUSER,
@@ -36,17 +35,17 @@ db.open({
   if (err) return debugIfErr(err)
   debug(`Opened leveldb @ ${process.env.LEVELDB}`)
 
-  let local = localIndex(db, rpc)
-  let localSyncQueue = qup((_, next) => resync(rpc, local, next), 1)
+  let adapter = indexd.makeAdapter(db, rpc)
+  let syncQueue = qup((_, next) => indexd.resync(rpc, adapter, next), 1)
 
-  function localSyncAndReset (callback) {
+  function syncAndReset (callback) {
     // maximum 2 waiting
-    if (localSyncQueue.running > 1) return callback()
+    if (syncQueue.running > 1) return callback()
 
-    localSyncQueue.push(null, (err) => {
+    syncQueue.push(null, (err) => {
       if (err) return callback(err)
 
-      local.reset(callback)
+      adapter.reset(callback)
     })
   }
 
@@ -58,14 +57,14 @@ db.open({
     topic = topic.toString('utf8')
     debugZmq(topic)
 
-    if (topic === 'hashblock') return localSyncAndReset(debugIfErr)
+    if (topic === 'hashblock') return syncAndReset(debugIfErr)
     if (topic !== 'hashtx') return
 
     let txId = message.toString('hex')
-    local.see(txId, debugIfErr)
+    adapter.see(txId, debugIfErr)
   })
 
-  localSyncAndReset(debugIfErr)
+  syncAndReset(debugIfErr)
 })
 ```
 
