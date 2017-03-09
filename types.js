@@ -73,7 +73,7 @@ let txIndex = {
   ])
 }
 
-let txOutIndex = {
+let txoIndex = {
   keyType: typeforce.compile({
     txId: Hex64t,
     vout: typeforce.UInt32
@@ -113,7 +113,7 @@ module.exports = {
   scIndex,
   spentIndex,
   txIndex,
-  txOutIndex,
+  txoIndex,
   tip
 }
 

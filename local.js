@@ -23,7 +23,7 @@ function connectBlock (db, id, height, block, callback) {
       let scId = bitcoin.crypto.sha256(script).toString('hex')
 
       atomic.put(types.scIndex, { scId, height, txId, vout }, null)
-      atomic.put(types.txOutIndex, { txId, vout }, { value })
+      atomic.put(types.txoIndex, { txId, vout }, { value })
     })
 
     atomic.put(types.txIndex, { txId }, { height })
@@ -51,7 +51,7 @@ function disconnectBlock (db, id, height, block, callback) {
       let scId = bitcoin.crypto.sha256(script).toString('hex')
 
       atomic.del(types.scIndex, { scId, height, txId, vout })
-      atomic.del(types.txOutIndex, { txId, vout })
+      atomic.del(types.txoIndex, { txId, vout })
     })
 
     atomic.del(types.txIndex, { txId }, { height })
@@ -68,7 +68,7 @@ function LocalIndex (db, rpc) {
   this.mempool = {
     scripts: {},
     spents: {},
-    txouts: {}
+    txos: {}
   }
   this.rpc = rpc
 }
@@ -121,7 +121,7 @@ LocalIndex.prototype.see = function (txId, callback) {
       let scId = bitcoin.crypto.sha256(script).toString('hex')
 
       getOrSetDefault(this.mempool.scripts, scId, []).push({ txId, vout })
-      this.mempool.txouts[`${txId}:${vout}`] = { value }
+      this.mempool.txos[`${txId}:${vout}`] = { value }
     })
 
     if (!waiting) {
@@ -129,7 +129,7 @@ LocalIndex.prototype.see = function (txId, callback) {
 
       setTimeout(() => {
         waiting = false
-        debugMempool(`txouts: ${Object.keys(this.mempool.txouts).length}`)
+        debugMempool(`txos: ${Object.keys(this.mempool.txos).length}`)
       }, 1000)
     }
 
@@ -145,14 +145,14 @@ LocalIndex.prototype.tip = function (callback) {
 }
 
 let BLANK_TXID = '0000000000000000000000000000000000000000000000000000000000000000'
-LocalIndex.prototype.txoutsByScript = function (scIds, height, callback) {
+LocalIndex.prototype.txosByScript = function (scIds, height, callback) {
   let resultMap = {}
   let tasks = scIds.map((scId) => {
     return (next) => {
       this.db.iterator(types.scIndex, {
         gte: { scId, height, txId: BLANK_TXID, vout: 0 }
-      }, ({ txId, vout }) => {
-        resultMap[`${txId}:${vout}`] = true
+      }, ({ txId, vout, height }) => {
+        resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
       }, next)
     }
   })
@@ -162,11 +162,11 @@ LocalIndex.prototype.txoutsByScript = function (scIds, height, callback) {
 
     // merge with mempool
     scIds.forEach((scId) => {
-      let txOuts = this.mempool.scripts[scId]
-      if (!txOuts) return
+      let txos = this.mempool.scripts[scId]
+      if (!txos) return
 
-      txOuts.forEach(({ txId, vout }) => {
-        resultMap[`${txId}:${vout}`] = true
+      txos.forEach(({ txId, vout }) => {
+        resultMap[`${txId}:${vout}`] = { txId, vout, scId }
       })
     })
 
@@ -174,11 +174,47 @@ LocalIndex.prototype.txoutsByScript = function (scIds, height, callback) {
   })
 }
 
+LocalIndex.prototype.txisByTxos = function (txos, callback) {
+  let tasks = []
+  for (let x in txos) {
+    let txo = txos[x]
+
+    tasks.push((next) => this.db.get(types.spentIndex, txo, (err, txi) => {
+      if (err && err.notFound) return callback()
+      if (err) return callback(err)
+
+      next(null, txi)
+    }))
+  }
+
+  parallel(tasks, callback)
+}
+
+LocalIndex.prototype.transactionsByScript = function (scIds, height, callback) {
+  this.txosByScript(scIds, height, (err, txosMap) => {
+    if (err) return callback(err)
+
+    this.txisByTxos(txosMap, (err, txisList) => {
+      if (err) return callback(err)
+
+      let txIds = {}
+
+      for (let x in txosMap) {
+        let { txId } = txosMap[x]
+        txIds[txId] = true
+      }
+      txisList.forEach(({ txId }) => (txIds[txId] = true))
+
+      callback(null, txIds)
+    })
+  })
+}
+
 LocalIndex.prototype.reset = function (callback) {
   this.mempool = {
     scripts: {},
     spents: {},
-    txouts: {}
+    txos: {}
   }
 
   debugMempool(`Cleared`)
