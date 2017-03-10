@@ -135,9 +135,9 @@ Adapter.prototype.see = function (txId, callback) {
     if (!waiting) {
       waiting = true
 
+      debugMempool(JSON.stringify(this.statistics))
       setTimeout(() => {
         waiting = false
-        debugMempool(JSON.stringify(this.statistics))
       }, 30000)
     }
 
