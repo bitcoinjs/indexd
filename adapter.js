@@ -4,9 +4,27 @@ let debug = require('debug')('local')
 let debugMempool = require('debug')('mempool')
 let parallel = require('run-parallel')
 let types = require('./types')
+let { EventEmitter } = require('events')
 
-function connectBlock (db, id, height, block, callback) {
-  let atomic = db.atomic()
+function Adapter (db, rpc) {
+  this.db = dbwrapper(db)
+  this.emitter = new EventEmitter()
+  this.emitter.setMaxListeners(Infinity)
+  this.mempool = {
+    scripts: {},
+    spents: {},
+    txos: {}
+  }
+  this.rpc = rpc
+  this.statistics = {
+    transactions: 0,
+    inputs: 0,
+    outputs: 0
+  }
+}
+
+Adapter.prototype.connectBlock = function (id, height, block, callback) {
+  let atomic = this.db.atomic()
 
   block.transactions.forEach((tx) => {
     let txId = tx.getId()
@@ -17,6 +35,8 @@ function connectBlock (db, id, height, block, callback) {
       let prevTxId = hash.reverse().toString('hex')
 
       atomic.put(types.spentIndex, { txId: prevTxId, vout }, { txId, vin })
+
+//       this.emitter.emit('spent', `${prevTxId}:${vout}`, txId)
     })
 
     tx.outs.forEach(({ script, value }, vout) => {
@@ -24,6 +44,8 @@ function connectBlock (db, id, height, block, callback) {
 
       atomic.put(types.scIndex, { scId, height, txId, vout }, null)
       atomic.put(types.txoIndex, { txId, vout }, { value })
+
+//       this.emitter.emit('script', scId, txId)
     })
 
     atomic.put(types.txIndex, { txId }, { height })
@@ -33,8 +55,31 @@ function connectBlock (db, id, height, block, callback) {
   atomic.put(types.tip, {}, id).write(callback)
 }
 
-function disconnectBlock (db, id, height, block, callback) {
-  let atomic = db.atomic()
+Adapter.prototype.connect = function (blockId, height, callback) {
+  this.rpc('getblock', [blockId, false], (err, hex) => {
+    if (err) return callback(err)
+
+    let block = bitcoin.Block.fromHex(hex)
+    this.connectBlock(blockId, height, block, callback)
+  })
+}
+
+Adapter.prototype.disconnect = function (blockId, callback) {
+  parallel({
+    header: (f) => this.rpc('getblockheader', [blockId], f),
+    hex: (f) => this.rpc('getblock', [blockId, false], f)
+  }, (err, result) => {
+    if (err) return callback(err)
+
+    let { height } = result.header
+    let block = bitcoin.Block.fromHex(result.hex)
+
+    this.disconnectBlock(blockId, height, block, callback)
+  })
+}
+
+Adapter.prototype.disconnectBlock = function (id, height, block, callback) {
+  let atomic = this.db.atomic()
 
   block.transactions.forEach((tx) => {
     let txId = tx.getId()
@@ -63,44 +108,6 @@ function disconnectBlock (db, id, height, block, callback) {
   atomic.put(types.tip, {}, previousBlockId).write(callback)
 }
 
-function Adapter (db, rpc) {
-  this.db = dbwrapper(db)
-  this.mempool = {
-    scripts: {},
-    spents: {},
-    txos: {}
-  }
-  this.rpc = rpc
-  this.statistics = {
-    transactions: 0,
-    inputs: 0,
-    outputs: 0
-  }
-}
-
-Adapter.prototype.connect = function (blockId, height, callback) {
-  this.rpc('getblock', [blockId, false], (err, hex) => {
-    if (err) return callback(err)
-
-    let block = bitcoin.Block.fromHex(hex)
-    connectBlock(this.db, blockId, height, block, callback)
-  })
-}
-
-Adapter.prototype.disconnect = function (blockId, callback) {
-  parallel({
-    header: (f) => this.rpc('getblockheader', [blockId], f),
-    hex: (f) => this.rpc('getblock', [blockId, false], f)
-  }, (err, result) => {
-    if (err) return callback(err)
-
-    let { height } = result.header
-    let block = bitcoin.Block.fromHex(result.hex)
-
-    disconnectBlock(this.db, blockId, height, block, callback)
-  })
-}
-
 function getOrSetDefault (object, key, defaultValue) {
   let existing = object[key]
   if (existing !== undefined) return existing
@@ -113,7 +120,8 @@ Adapter.prototype.see = function (txId, callback) {
   this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
     if (err) return callback(err)
 
-    let tx = bitcoin.Transaction.fromHex(txHex)
+    let txBuffer = Buffer.from(txHex, 'hex')
+    let tx = bitcoin.Transaction.fromBuffer(txBuffer)
 
     this.statistics.transactions++
     tx.ins.forEach(({ hash, index: vout }, vin) => {
@@ -122,6 +130,8 @@ Adapter.prototype.see = function (txId, callback) {
       let prevTxId = hash.reverse().toString('hex')
       getOrSetDefault(this.mempool.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
       this.statistics.inputs++
+
+//       this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer)
     })
 
     tx.outs.forEach(({ script, value }, vout) => {
@@ -130,6 +140,8 @@ Adapter.prototype.see = function (txId, callback) {
       getOrSetDefault(this.mempool.scripts, scId, []).push({ txId, vout })
       this.mempool.txos[`${txId}:${vout}`] = { value }
       this.statistics.outputs++
+
+//       this.emitter.emit('script', scId, txId, txBuffer)
     })
 
     if (!waiting) {
