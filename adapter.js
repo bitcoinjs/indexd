@@ -71,6 +71,11 @@ function Adapter (db, rpc) {
     txos: {}
   }
   this.rpc = rpc
+  this.statistics = {
+    transactions: 0,
+    inputs: 0,
+    outputs: 0
+  }
 }
 
 Adapter.prototype.connect = function (blockId, height, callback) {
@@ -110,11 +115,13 @@ Adapter.prototype.see = function (txId, callback) {
 
     let tx = bitcoin.Transaction.fromHex(txHex)
 
+    this.statistics.transactions++
     tx.ins.forEach(({ hash, index: vout }, vin) => {
       if (bitcoin.Transaction.isCoinbaseHash(hash)) return
 
       let prevTxId = hash.reverse().toString('hex')
       getOrSetDefault(this.mempool.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
+      this.statistics.inputs++
     })
 
     tx.outs.forEach(({ script, value }, vout) => {
@@ -122,6 +129,7 @@ Adapter.prototype.see = function (txId, callback) {
 
       getOrSetDefault(this.mempool.scripts, scId, []).push({ txId, vout })
       this.mempool.txos[`${txId}:${vout}`] = { value }
+      this.statistics.outputs++
     })
 
     if (!waiting) {
@@ -129,7 +137,7 @@ Adapter.prototype.see = function (txId, callback) {
 
       setTimeout(() => {
         waiting = false
-        debugMempool(`txos: ${Object.keys(this.mempool.txos).length}`)
+        debugMempool(JSON.stringify(this.statistics))
       }, 30000)
     }
 
@@ -215,6 +223,11 @@ Adapter.prototype.reset = function (callback) {
     scripts: {},
     spents: {},
     txos: {}
+  }
+  this.statistics = {
+    transactions: 0,
+    inputs: 0,
+    outputs: 0
   }
 
   debugMempool(`Cleared`)
