@@ -130,7 +130,7 @@ Adapter.prototype.see = function (txId, callback) {
       setTimeout(() => {
         waiting = false
         debugMempool(`txos: ${Object.keys(this.mempool.txos).length}`)
-      }, 1000)
+      }, 30000)
     }
 
     callback()
