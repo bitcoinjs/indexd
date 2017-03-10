@@ -152,13 +152,13 @@ Adapter.prototype.tip = function (callback) {
   })
 }
 
-let BLANK_TXID = '0000000000000000000000000000000000000000000000000000000000000000'
+let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
 Adapter.prototype.txosByScript = function (scIds, height, callback) {
   let resultMap = {}
   let tasks = scIds.map((scId) => {
     return (next) => {
       this.db.iterator(types.scIndex, {
-        gte: { scId, height, txId: BLANK_TXID, vout: 0 }
+        gte: { scId, height, txId: ZERO64, vout: 0 }
       }, ({ txId, vout, height }) => {
         resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
       }, next)
@@ -215,6 +215,33 @@ Adapter.prototype.transactionsByScript = function (scIds, height, callback) {
 
       callback(null, txIds)
     })
+  })
+}
+
+Adapter.prototype.exposureByScript = function (scIds, callback) {
+  let resultMap = {}
+  let tasks = scIds.map((scId) => {
+    return (next) => {
+      this.db.iterator(types.scIndex, {
+        gte: { scId, height: 0, txId: ZERO64, vout: 0 },
+        limit: 1
+      }, () => {
+        resultMap[scId] = true
+      }, next)
+    }
+  })
+
+  parallel(tasks, (err) => {
+    if (err) return callback(err)
+
+    // merge with mempool
+    scIds.forEach((scId) => {
+      let txos = this.mempool.scripts[scId]
+      if (!txos) return
+      resultMap[scId] = true
+    })
+
+    callback(null, resultMap)
   })
 }
 
