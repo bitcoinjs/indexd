@@ -1,4 +1,4 @@
 module.exports = {
-  adapter: require('../adapter'),
-  resync: require('../resync')
+  adapter: require('./adapter'),
+  resync: require('./resync')
 }

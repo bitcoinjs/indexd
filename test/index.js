@@ -2,7 +2,7 @@ require('dotenv').load()
 
 let debug = require('debug')('index')
 let debugZmq = require('debug')('zmq')
-let indexd = require('indexd')
+let indexd = require('../')
 let leveldown = require('leveldown')
 let qup = require('qup')
 let rpc = require('yajrpc/qup')({
