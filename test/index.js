@@ -18,6 +18,7 @@ function debugIfErr (err) {
   if (err) debug(err)
 }
 
+debug(`Opening leveldb @ ${process.env.LEVELDB}`)
 let db = leveldown(process.env.LEVELDB)
 db.open({
   writeBufferSize: 1 * 1024 * 1024 * 1024
