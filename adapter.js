@@ -63,7 +63,7 @@ Mempool.prototype.add = function (txId, callback) {
       if (bitcoin.Transaction.isCoinbaseHash(hash)) return
 
       let prevTxId = hash.reverse().toString('hex')
-      getOrSetDefault(this.mempool.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
+      getOrSetDefault(this.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
       this.statistics.inputs++
 
       this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer)
@@ -72,8 +72,8 @@ Mempool.prototype.add = function (txId, callback) {
     tx.outs.forEach(({ script, value }, vout) => {
       let scId = bitcoin.crypto.sha256(script).toString('hex')
 
-      getOrSetDefault(this.mempool.scripts, scId, []).push({ txId, vout })
-      this.mempool.txos[`${txId}:${vout}`] = { value }
+      getOrSetDefault(this.scripts, scId, []).push({ txId, vout })
+      this.txos[`${txId}:${vout}`] = { value }
       this.statistics.outputs++
 
       this.emitter.emit('script', scId, txId, txBuffer)
