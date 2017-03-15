@@ -30,13 +30,10 @@ db.open({
   let syncQueue = qup((_, next) => indexd.resync(rpc, adapter, next), 1)
 
   function syncAndReset (callback) {
-    // maximum 2 waiting
-    if (syncQueue.running > 1) return callback()
-
     syncQueue.push(null, (err) => {
       if (err) return callback(err)
 
-      adapter.reset(callback)
+      adapter.mempool.reset(callback)
     })
   }
 
@@ -52,7 +49,7 @@ db.open({
     if (topic !== 'hashtx') return
 
     let txId = message.toString('hex')
-    adapter.see(txId, debugIfErr)
+    adapter.mempool.add(txId, debugIfErr)
   })
 
   syncAndReset(debugIfErr)

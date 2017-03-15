@@ -6,15 +6,96 @@ let parallel = require('run-parallel')
 let types = require('./types')
 let { EventEmitter } = require('events')
 
+function Mempool (rpc) {
+  this.scripts = {}
+  this.spents = {}
+  this.txos = {}
+}
+
+Mempool.prototype.reset = function (callback) {
+  this.scripts = {}
+  this.spents = {}
+  this.txos = {}
+  this.statistics = {
+    transactions: 0,
+    inputs: 0,
+    outputs: 0
+  }
+
+  debugMempool(`Cleared`)
+  this.rpc('getrawmempool', [false], (err, actualTxIds) => {
+    if (err) return callback(err)
+
+    debugMempool(`Downloading ${actualTxIds.length} transactions`)
+    let tasks = actualTxIds.map(txId => next => this.add(txId, next))
+
+    parallel(tasks, (err) => {
+      if (err) return callback(err)
+
+      debugMempool(`Downloaded ${actualTxIds.length} transactions`)
+      callback()
+    })
+  })
+}
+
+function getOrSetDefault (object, key, defaultValue) {
+  let existing = object[key]
+  if (existing !== undefined) return existing
+  object[key] = defaultValue
+  return defaultValue
+}
+
+let waiting
+Mempool.prototype.add = function (txId, callback) {
+  this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
+    if (err && err.message.match(/^Error: No such mempool or blockchain transaction$/)) {
+      debugMempool(new Error(`${txId} unknown`))
+      return callback()
+    }
+    if (err) return callback(err)
+
+    let txBuffer = Buffer.from(txHex, 'hex')
+    let tx = bitcoin.Transaction.fromBuffer(txBuffer)
+
+    this.statistics.transactions++
+    tx.ins.forEach(({ hash, index: vout }, vin) => {
+      if (bitcoin.Transaction.isCoinbaseHash(hash)) return
+
+      let prevTxId = hash.reverse().toString('hex')
+      getOrSetDefault(this.mempool.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
+      this.statistics.inputs++
+
+      this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer)
+    })
+
+    tx.outs.forEach(({ script, value }, vout) => {
+      let scId = bitcoin.crypto.sha256(script).toString('hex')
+
+      getOrSetDefault(this.mempool.scripts, scId, []).push({ txId, vout })
+      this.mempool.txos[`${txId}:${vout}`] = { value }
+      this.statistics.outputs++
+
+      this.emitter.emit('script', scId, txId, txBuffer)
+    })
+
+    if (!waiting) {
+      waiting = true
+
+      debugMempool(this.statistics)
+      setTimeout(() => {
+        waiting = false
+      }, 30000)
+    }
+
+    callback()
+  })
+}
+
 function Adapter (db, rpc) {
   this.db = dbwrapper(db)
   this.emitter = new EventEmitter()
   this.emitter.setMaxListeners(Infinity)
-  this.mempool = {
-    scripts: {},
-    spents: {},
-    txos: {}
-  }
+  this.mempool = new Mempool(rpc)
   this.rpc = rpc
   this.statistics = {
     transactions: 0,
@@ -106,59 +187,6 @@ Adapter.prototype.disconnectBlock = function (id, height, block, callback) {
   let previousBlockId = Buffer.from(block.prevHash).reverse().toString('hex')
   debug(`Deleting ${id} @ ${height} - ${block.transactions.length} transactions`)
   atomic.put(types.tip, {}, previousBlockId).write(callback)
-}
-
-function getOrSetDefault (object, key, defaultValue) {
-  let existing = object[key]
-  if (existing !== undefined) return existing
-  object[key] = defaultValue
-  return defaultValue
-}
-
-let waiting
-Adapter.prototype.see = function (txId, callback) {
-  this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
-    if (err && err.message.match(/^Error: No such mempool or blockchain transaction$/)) {
-      debugMempool(new Error(`${txId} unknown`))
-      return callback()
-    }
-    if (err) return callback(err)
-
-    let txBuffer = Buffer.from(txHex, 'hex')
-    let tx = bitcoin.Transaction.fromBuffer(txBuffer)
-
-    this.statistics.transactions++
-    tx.ins.forEach(({ hash, index: vout }, vin) => {
-      if (bitcoin.Transaction.isCoinbaseHash(hash)) return
-
-      let prevTxId = hash.reverse().toString('hex')
-      getOrSetDefault(this.mempool.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
-      this.statistics.inputs++
-
-      this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer)
-    })
-
-    tx.outs.forEach(({ script, value }, vout) => {
-      let scId = bitcoin.crypto.sha256(script).toString('hex')
-
-      getOrSetDefault(this.mempool.scripts, scId, []).push({ txId, vout })
-      this.mempool.txos[`${txId}:${vout}`] = { value }
-      this.statistics.outputs++
-
-      this.emitter.emit('script', scId, txId, txBuffer)
-    })
-
-    if (!waiting) {
-      waiting = true
-
-      debugMempool(this.statistics)
-      setTimeout(() => {
-        waiting = false
-      }, 30000)
-    }
-
-    callback()
-  })
 }
 
 Adapter.prototype.tip = function (callback) {
@@ -258,34 +286,6 @@ Adapter.prototype.exposureByScript = function (scIds, callback) {
     })
 
     callback(null, resultMap)
-  })
-}
-
-Adapter.prototype.reset = function (callback) {
-  this.mempool = {
-    scripts: {},
-    spents: {},
-    txos: {}
-  }
-  this.statistics = {
-    transactions: 0,
-    inputs: 0,
-    outputs: 0
-  }
-
-  debugMempool(`Cleared`)
-  this.rpc('getrawmempool', [false], (err, actualTxIds) => {
-    if (err) return callback(err)
-
-    debugMempool(`Downloading ${actualTxIds.length} transactions`)
-    let tasks = actualTxIds.map(txId => next => this.see(txId, next))
-
-    parallel(tasks, (err) => {
-      if (err) return callback(err)
-
-      debugMempool(`Downloaded ${actualTxIds.length} transactions`)
-      callback()
-    })
   })
 }
 
