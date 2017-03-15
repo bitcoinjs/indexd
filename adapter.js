@@ -6,7 +6,8 @@ let parallel = require('run-parallel')
 let types = require('./types')
 let { EventEmitter } = require('events')
 
-function Mempool (rpc) {
+function Mempool (emitter, rpc) {
+  this.emitter = emitter
   this.rpc = rpc
   this.scripts = {}
   this.spents = {}
@@ -96,7 +97,7 @@ function Adapter (db, rpc) {
   this.db = dbwrapper(db)
   this.emitter = new EventEmitter()
   this.emitter.setMaxListeners(Infinity)
-  this.mempool = new Mempool(rpc)
+  this.mempool = new Mempool(this.emitter, rpc)
   this.rpc = rpc
   this.statistics = {
     transactions: 0,
