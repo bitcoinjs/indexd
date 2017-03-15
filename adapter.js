@@ -7,6 +7,7 @@ let types = require('./types')
 let { EventEmitter } = require('events')
 
 function Mempool (rpc) {
+  this.rpc = rpc
   this.scripts = {}
   this.spents = {}
   this.txos = {}
