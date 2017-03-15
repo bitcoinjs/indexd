@@ -118,6 +118,10 @@ function getOrSetDefault (object, key, defaultValue) {
 let waiting
 Adapter.prototype.see = function (txId, callback) {
   this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
+    if (err && err.message.match(/^Error: No such mempool or blockchain transaction$/)) {
+      debugMempool(new Error(`${txId} unknown`))
+      return callback()
+    }
     if (err) return callback(err)
 
     let txBuffer = Buffer.from(txHex, 'hex')
