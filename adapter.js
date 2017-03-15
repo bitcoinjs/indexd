@@ -36,7 +36,7 @@ Adapter.prototype.connectBlock = function (id, height, block, callback) {
 
       atomic.put(types.spentIndex, { txId: prevTxId, vout }, { txId, vin })
 
-//       this.emitter.emit('spent', `${prevTxId}:${vout}`, txId)
+      this.emitter.emit('spent', `${prevTxId}:${vout}`, txId)
     })
 
     tx.outs.forEach(({ script, value }, vout) => {
@@ -45,7 +45,7 @@ Adapter.prototype.connectBlock = function (id, height, block, callback) {
       atomic.put(types.scIndex, { scId, height, txId, vout }, null)
       atomic.put(types.txoIndex, { txId, vout }, { value })
 
-//       this.emitter.emit('script', scId, txId)
+      this.emitter.emit('script', scId, txId)
     })
 
     atomic.put(types.txIndex, { txId }, { height })
@@ -131,7 +131,7 @@ Adapter.prototype.see = function (txId, callback) {
       getOrSetDefault(this.mempool.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
       this.statistics.inputs++
 
-//       this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer)
+      this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer)
     })
 
     tx.outs.forEach(({ script, value }, vout) => {
@@ -141,7 +141,7 @@ Adapter.prototype.see = function (txId, callback) {
       this.mempool.txos[`${txId}:${vout}`] = { value }
       this.statistics.outputs++
 
-//       this.emitter.emit('script', scId, txId, txBuffer)
+      this.emitter.emit('script', scId, txId, txBuffer)
     })
 
     if (!waiting) {
