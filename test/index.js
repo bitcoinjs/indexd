@@ -2,6 +2,7 @@ require('dotenv').load()
 
 let debug = require('debug')('index')
 let debugZmq = require('debug')('zmq')
+let debugZmqTx = require('debug')('zmq:tx')
 let indexd = require('../')
 let leveldown = require('leveldown')
 let qup = require('qup')
@@ -43,13 +44,17 @@ db.open({
   zmqSock.subscribe('hashtx')
   zmqSock.on('message', (topic, message) => {
     topic = topic.toString('utf8')
-    debugZmq(topic)
+    message = message.toString('hex')
 
-    if (topic === 'hashblock') return syncAndReset(debugIfErr)
+    if (topic === 'hashblock') {
+      debugZmq(topic, message)
+      return syncAndReset(debugIfErr)
+    }
+
     if (topic !== 'hashtx') return
+    debugZmqTx(topic, message)
 
-    let txId = message.toString('hex')
-    adapter.mempool.add(txId, debugIfErr)
+    adapter.mempool.add(message, debugIfErr)
   })
 
   syncAndReset(debugIfErr)
