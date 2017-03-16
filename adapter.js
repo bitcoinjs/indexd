@@ -191,6 +191,45 @@ Adapter.prototype.disconnectBlock = function (id, height, block, callback) {
   atomic.put(types.tip, {}, previousBlockId).write(callback)
 }
 
+// queries
+Adapter.prototype.blocksByTransaction = function (txIds, callback) {
+  parallel(txIds.map((txId) => {
+    return (next) => this.db.get(types.txIndex, txId, (err, height) => {
+      if (err && err.notFound) return callback()
+      if (err) return callback(err)
+
+      this.rpc('getblockhash', [height], next)
+    })
+  }), callback)
+}
+
+Adapter.prototype.knownScripts = function (scIds, callback) {
+  let resultMap = {}
+  let tasks = scIds.map((scId) => {
+    return (next) => {
+      this.db.iterator(types.scIndex, {
+        gte: { scId, height: 0, txId: ZERO64, vout: 0 },
+        limit: 1
+      }, () => {
+        resultMap[scId] = true
+      }, next)
+    }
+  })
+
+  parallel(tasks, (err) => {
+    if (err) return callback(err)
+
+    // merge with mempool
+    scIds.forEach((scId) => {
+      let txos = this.mempool.scripts[scId]
+      if (!txos) return
+      resultMap[scId] = true
+    })
+
+    callback(null, resultMap)
+  })
+}
+
 Adapter.prototype.tip = function (callback) {
   this.db.get(types.tip, {}, (err, blockId) => {
     if (err && err.notFound) return callback()
@@ -261,33 +300,6 @@ Adapter.prototype.transactionsByScript = function (scIds, height, callback) {
 
       callback(null, txIds)
     })
-  })
-}
-
-Adapter.prototype.exposureByScript = function (scIds, callback) {
-  let resultMap = {}
-  let tasks = scIds.map((scId) => {
-    return (next) => {
-      this.db.iterator(types.scIndex, {
-        gte: { scId, height: 0, txId: ZERO64, vout: 0 },
-        limit: 1
-      }, () => {
-        resultMap[scId] = true
-      }, next)
-    }
-  })
-
-  parallel(tasks, (err) => {
-    if (err) return callback(err)
-
-    // merge with mempool
-    scIds.forEach((scId) => {
-      let txos = this.mempool.scripts[scId]
-      if (!txos) return
-      resultMap[scId] = true
-    })
-
-    callback(null, resultMap)
   })
 }
 
