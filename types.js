@@ -116,11 +116,3 @@ module.exports = {
   txoIndex,
   tip
 }
-
-// convert prefixs to keys
-for (let key in module.exports) {
-  let _export = module.exports[key]
-  let prefix = Buffer.alloc(1)
-  prefix.writeUInt8(_export.prefix)
-  _export.prefix = prefix
-}
