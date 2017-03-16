@@ -59,6 +59,8 @@ db.open({
       return syncQueue.push(null, debugIfErr)
     }
 
+    // don't add to the mempool until after a reset is complete
+    if (syncQueue.running > 0) return
     if (topic !== 'hashtx') return
     debugZmqTx(topic, message)
 
