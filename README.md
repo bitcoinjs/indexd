@@ -1,4 +1,8 @@
 # indexd
+
+[![build status](https://secure.travis-ci.org/dcousens/indexd.png)](http://travis-ci.org/dcousens/indexd)
+[![Version](https://img.shields.io/npm/v/indexd.svg)](https://www.npmjs.org/package/indexd)
+
 An external [bitcoind](https://github.com/bitcoin/bitcoin) index management service.
 
 
