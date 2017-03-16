@@ -52,6 +52,8 @@ db.open({
       expected = sequence
     } else if (expected + 1 !== sequence) {
       debugZmq(`${sequence - expected - 1} messages lost`)
+    } else {
+      expected = sequence
     }
 
     if (topic === 'hashblock') {
