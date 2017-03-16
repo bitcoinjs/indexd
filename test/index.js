@@ -49,11 +49,14 @@ db.open({
     message = message.toString('hex')
     sequence = sequence.readUInt32LE()
 
+    // if any ZMQ messages were lost,  assume a resync is required
     if (lastSequence !== undefined && (sequence !== (lastSequence + 1))) {
       debugZmq(`${sequence - lastSequence - 1} messages lost`)
+      lastSequence = sequence
+      return syncAndReset(debugIfErr)
     }
-    lastSequence = sequence
 
+    lastSequence = sequence
     if (topic === 'hashblock') {
       debugZmq(topic, message)
       return syncAndReset(debugIfErr)
