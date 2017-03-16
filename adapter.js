@@ -50,7 +50,7 @@ function getOrSetDefault (object, key, defaultValue) {
 let waiting
 Mempool.prototype.add = function (txId, callback) {
   this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
-    if (err && err.message.match(/^Error: No such mempool or blockchain transaction$/)) {
+    if (err && err.message.match(/^Error: No such mempool or blockchain transaction/)) {
       debugMempool(new Error(`${txId} unknown`))
       return callback()
     }
