@@ -201,30 +201,21 @@ Adapter.prototype.blockByTransaction = function (txId, callback) {
   })
 }
 
-Adapter.prototype.knownScripts = function (scIds, callback) {
-  let resultMap = {}
-  let tasks = scIds.map((scId) => {
-    return (next) => {
-      this.db.iterator(types.scIndex, {
-        gte: { scId, height: 0, txId: ZERO64, vout: 0 },
-        limit: 1
-      }, () => {
-        resultMap[scId] = true
-      }, next)
-    }
-  })
+Adapter.prototype.knownScript = function (scId, callback) {
+  let result = false
 
-  parallel(tasks, (err) => {
+  this.db.iterator(types.scIndex, {
+    gte: { scId, height: 0, txId: ZERO64, vout: 0 },
+    limit: 1
+  }, () => {
+    result = true
+  }, (err) => {
     if (err) return callback(err)
+    if (result) return callback(null, result)
 
-    // merge with mempool
-    scIds.forEach((scId) => {
-      let txos = this.mempool.scripts[scId]
-      if (!txos) return
-      resultMap[scId] = true
-    })
-
-    callback(null, resultMap)
+    // maybe the mempool?
+    let txos = this.mempool.scripts[scId]
+    callback(null, Boolean(txos))
   })
 }
 
@@ -236,65 +227,70 @@ Adapter.prototype.tip = function (callback) {
 }
 
 let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
-Adapter.prototype.txosByScript = function (scIds, height, callback) {
+Adapter.prototype.txosByScript = function (scId, height, callback) {
   let resultMap = {}
-  let tasks = scIds.map((scId) => {
-    return (next) => {
-      this.db.iterator(types.scIndex, {
-        gte: { scId, height, txId: ZERO64, vout: 0 }
-      }, ({ txId, vout, height }) => {
-        resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
-      }, next)
-    }
-  })
 
-  parallel(tasks, (err) => {
+  this.db.iterator(types.scIndex, {
+    gte: { scId, height, txId: ZERO64, vout: 0 }
+  }, ({ txId, vout, height }) => {
+    resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
+  }, (err) => {
     if (err) return callback(err)
 
     // merge with mempool
-    scIds.forEach((scId) => {
-      let txos = this.mempool.scripts[scId]
-      if (!txos) return
+    let txos = this.mempool.scripts[scId]
+    if (!txos) return
 
-      txos.forEach(({ txId, vout }) => {
-        resultMap[`${txId}:${vout}`] = { txId, vout, scId }
-      })
+    txos.forEach(({ txId, vout }) => {
+      resultMap[`${txId}:${vout}`] = { txId, vout, scId }
     })
 
     callback(null, resultMap)
   })
 }
 
-Adapter.prototype.txisByTxos = function (txos, callback) {
-  let tasks = []
-  for (let x in txos) {
-    let txo = txos[x]
-
-    tasks.push((next) => this.db.get(types.spentIndex, txo, (err, txi) => {
-      if (err && err.notFound) return callback()
-      if (err) return callback(err)
-
-      next(null, txi)
-    }))
-  }
-
-  parallel(tasks, callback)
-}
-
-Adapter.prototype.transactionsByScripts = function (scIds, height, callback) {
-  this.txosByScript(scIds, height, (err, txosMap) => {
+Adapter.prototype.spentFromTxo = function (txo, callback) {
+  this.db.get(types.spentIndex, txo, (err, spent) => {
+    if (err && err.notFound) return callback()
     if (err) return callback(err)
 
-    this.txisByTxos(txosMap, (err, txisList) => {
+    callback(null, spent)
+  })
+}
+
+Adapter.prototype.transactionsByScript = function (scId, height, callback) {
+  this.txosByScript(scId, height, (err, txosMap) => {
+    if (err) return callback(err)
+
+    let taskMap = {}
+    for (let txoKey in txosMap) {
+      let txo = txosMap[txoKey]
+
+      taskMap[txoKey] = (next) => {
+        this.spentFromTxo(txo, (err, spent) => {
+          if (err) return next(err)
+
+          next(null, spent)
+        })
+      }
+    }
+
+    parallel(taskMap, (err, spentMap) => {
       if (err) return callback(err)
 
       let txIds = {}
+
+      for (let x in spentMap) {
+        let spent = spentMap[x]
+        if (!spent) continue
+
+        txIds[spent.txId] = true
+      }
 
       for (let x in txosMap) {
         let { txId } = txosMap[x]
         txIds[txId] = true
       }
-      txisList.forEach(({ txId }) => (txIds[txId] = true))
 
       callback(null, txIds)
     })
