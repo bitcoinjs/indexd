@@ -89,6 +89,7 @@ Mempool.prototype.add = function (txId, callback) {
       }, 30000)
     }
 
+    this.emitter.emit('transaction', txId, txBuffer)
     callback()
   })
 }
@@ -106,89 +107,85 @@ function Adapter (db, rpc) {
   }
 }
 
-Adapter.prototype.connectBlock = function (id, height, block, callback) {
-  let atomic = this.db.atomic()
-
-  block.transactions.forEach((tx) => {
-    let txId = tx.getId()
-
-    tx.ins.forEach(({ hash, index: vout }, vin) => {
-      if (bitcoin.Transaction.isCoinbaseHash(hash)) return
-
-      let prevTxId = hash.reverse().toString('hex')
-
-      atomic.put(types.spentIndex, { txId: prevTxId, vout }, { txId, vin })
-
-      this.emitter.emit('spent', `${prevTxId}:${vout}`, txId)
-    })
-
-    tx.outs.forEach(({ script, value }, vout) => {
-      let scId = bitcoin.crypto.sha256(script).toString('hex')
-
-      atomic.put(types.scIndex, { scId, height, txId, vout }, null)
-      atomic.put(types.txoIndex, { txId, vout }, { value })
-
-      this.emitter.emit('script', scId, txId)
-    })
-
-    atomic.put(types.txIndex, { txId }, { height })
-  })
-
-  debug(`Putting ${id} @ ${height} - ${block.transactions.length} transactions`)
-  atomic.put(types.tip, {}, id).write(callback)
-}
-
 Adapter.prototype.connect = function (blockId, height, callback) {
-  this.rpc('getblock', [blockId, false], (err, hex) => {
+  this.rpc('getblock', [blockId, false], (err, blockHex) => {
     if (err) return callback(err)
 
-    let block = bitcoin.Block.fromHex(hex)
-    this.connectBlock(blockId, height, block, callback)
+    let blockBuffer = Buffer.from(blockHex, 'hex')
+    let block = bitcoin.Block.fromBuffer(blockBuffer)
+    let atomic = this.db.atomic()
+
+    block.transactions.forEach((tx) => {
+      let txId = tx.getId()
+
+      tx.ins.forEach(({ hash, index: vout }, vin) => {
+        if (bitcoin.Transaction.isCoinbaseHash(hash)) return
+
+        let prevTxId = hash.reverse().toString('hex')
+
+        atomic.put(types.spentIndex, { txId: prevTxId, vout }, { txId, vin })
+
+        this.emitter.emit('spent', `${prevTxId}:${vout}`, txId)
+      })
+
+      tx.outs.forEach(({ script, value }, vout) => {
+        let scId = bitcoin.crypto.sha256(script).toString('hex')
+
+        atomic.put(types.scIndex, { scId, height, txId, vout }, null)
+        atomic.put(types.txoIndex, { txId, vout }, { value })
+
+        this.emitter.emit('script', scId, txId)
+      })
+
+      let txBuffer = tx.toBuffer() // TODO: maybe we can slice this in fromBuffer
+      this.emitter.emit('transaction', txId, txBuffer)
+      atomic.put(types.txIndex, { txId }, { height })
+    })
+
+    this.emitter.emit('block', blockId, blockBuffer)
+    debug(`Putting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
+    atomic.put(types.tip, {}, blockId).write(callback)
   })
 }
 
 Adapter.prototype.disconnect = function (blockId, callback) {
   parallel({
-    header: (f) => this.rpc('getblockheader', [blockId], f),
-    hex: (f) => this.rpc('getblock', [blockId, false], f)
+    blockHeader: (f) => this.rpc('getblockheader', [blockId], f),
+    blockHex: (f) => this.rpc('getblock', [blockId, false], f)
   }, (err, result) => {
     if (err) return callback(err)
 
-    let { height } = result.header
-    let block = bitcoin.Block.fromHex(result.hex)
+    let { height } = result.blockHeader
+    let blockBuffer = Buffer.from(result.blockHex, 'hex')
+    let block = bitcoin.Block.fromBuffer(blockBuffer)
+    let atomic = this.db.atomic()
 
-    this.disconnectBlock(blockId, height, block, callback)
-  })
-}
+    block.transactions.forEach((tx) => {
+      let txId = tx.getId()
 
-Adapter.prototype.disconnectBlock = function (id, height, block, callback) {
-  let atomic = this.db.atomic()
+      tx.ins.forEach(({ hash, index: vout }) => {
+        if (bitcoin.Transaction.isCoinbaseHash(hash)) return
 
-  block.transactions.forEach((tx) => {
-    let txId = tx.getId()
+        let prevTxId = hash.reverse().toString('hex')
 
-    tx.ins.forEach(({ hash, index: vout }) => {
-      if (bitcoin.Transaction.isCoinbaseHash(hash)) return
+        atomic.del(types.spentIndex, { txId: prevTxId, vout })
+      })
 
-      let prevTxId = hash.reverse().toString('hex')
+      tx.outs.forEach(({ script }, vout) => {
+        let scId = bitcoin.crypto.sha256(script).toString('hex')
 
-      atomic.del(types.spentIndex, { txId: prevTxId, vout })
+        atomic.del(types.scIndex, { scId, height, txId, vout })
+        atomic.del(types.txoIndex, { txId, vout })
+      })
+
+      atomic.del(types.txIndex, { txId }, { height })
     })
 
-    tx.outs.forEach(({ script }, vout) => {
-      let scId = bitcoin.crypto.sha256(script).toString('hex')
-
-      atomic.del(types.scIndex, { scId, height, txId, vout })
-      atomic.del(types.txoIndex, { txId, vout })
-    })
-
-    atomic.del(types.txIndex, { txId }, { height })
+    // TODO: add helper to bitcoinjs-lib?
+    let previousBlockId = Buffer.from(block.prevHash).reverse().toString('hex')
+    debug(`Deleting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
+    atomic.put(types.tip, {}, previousBlockId).write(callback)
   })
-
-  // TODO: add helper to bitcoinjs-lib?
-  let previousBlockId = Buffer.from(block.prevHash).reverse().toString('hex')
-  debug(`Deleting ${id} @ ${height} - ${block.transactions.length} transactions`)
-  atomic.put(types.tip, {}, previousBlockId).write(callback)
 }
 
 // queries
