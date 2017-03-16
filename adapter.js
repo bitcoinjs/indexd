@@ -192,15 +192,13 @@ Adapter.prototype.disconnectBlock = function (id, height, block, callback) {
 }
 
 // queries
-Adapter.prototype.blocksByTransaction = function (txIds, callback) {
-  parallel(txIds.map((txId) => {
-    return (next) => this.db.get(types.txIndex, txId, (err, height) => {
-      if (err && err.notFound) return callback()
-      if (err) return callback(err)
+Adapter.prototype.blockByTransaction = function (txId, callback) {
+  this.db.get(types.txIndex, txId, (err, height) => {
+    if (err && err.notFound) return callback()
+    if (err) return callback(err)
 
-      this.rpc('getblockhash', [height], next)
-    })
-  }), callback)
+    this.rpc('getblockhash', [height], callback)
+  })
 }
 
 Adapter.prototype.knownScripts = function (scIds, callback) {
@@ -283,7 +281,7 @@ Adapter.prototype.txisByTxos = function (txos, callback) {
   parallel(tasks, callback)
 }
 
-Adapter.prototype.transactionsByScript = function (scIds, height, callback) {
+Adapter.prototype.transactionsByScripts = function (scIds, height, callback) {
   this.txosByScript(scIds, height, (err, txosMap) => {
     if (err) return callback(err)
 
