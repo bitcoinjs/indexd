@@ -142,7 +142,7 @@ Adapter.prototype.connect = function (blockId, height, callback) {
       atomic.put(types.txIndex, { txId }, { height })
     })
 
-    this.emitter.emit('block', blockId, blockBuffer)
+    this.emitter.emit('block', blockId, blockBuffer, height)
     debug(`Putting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
     atomic.put(types.tip, {}, blockId).write(callback)
   })
