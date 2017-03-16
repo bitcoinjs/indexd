@@ -28,15 +28,12 @@ db.open({
   debug(`Opened leveldb @ ${process.env.LEVELDB}`)
 
   let adapter = indexd.makeAdapter(db, rpc)
-  let syncQueue = qup((_, next) => indexd.resync(rpc, adapter, next), 1)
-
-  function syncAndReset (callback) {
-    syncQueue.push(null, (err) => {
-      if (err) return callback(err)
-
-      adapter.mempool.reset(callback)
+  let syncQueue = qup((_, next) => {
+    indexd.resync(rpc, adapter, (err) => {
+      if (err) return next(err)
+      adapter.mempool.reset(next)
     })
-  }
+  }, 1)
 
   let zmqSock = zmq.socket('sub')
   zmqSock.connect(process.env.ZMQ)
@@ -53,13 +50,13 @@ db.open({
     if (lastSequence !== undefined && (sequence !== (lastSequence + 1))) {
       debugZmq(`${sequence - lastSequence - 1} messages lost`)
       lastSequence = sequence
-      return syncAndReset(debugIfErr)
+      return syncQueue.push(null, debugIfErr)
     }
 
     lastSequence = sequence
     if (topic === 'hashblock') {
       debugZmq(topic, message)
-      return syncAndReset(debugIfErr)
+      return syncQueue.push(null, debugIfErr)
     }
 
     if (topic !== 'hashtx') return
@@ -68,5 +65,5 @@ db.open({
     adapter.mempool.add(message, debugIfErr)
   })
 
-  syncAndReset(debugIfErr)
+  syncQueue.push(null, debugIfErr)
 })
