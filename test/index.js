@@ -43,18 +43,16 @@ db.open({
   zmqSock.subscribe('hashblock')
   zmqSock.subscribe('hashtx')
 
-  let expected
+  let lastSequence
   zmqSock.on('message', (topic, message, sequence) => {
     topic = topic.toString('utf8')
     message = message.toString('hex')
     sequence = sequence.readUInt32LE()
-    if (expected === undefined) {
-      expected = sequence
-    } else if (expected + 1 !== sequence) {
-      debugZmq(`${sequence - expected - 1} messages lost`)
-    } else {
-      expected = sequence
+
+    if (lastSequence !== undefined && (sequence !== (lastSequence + 1))) {
+      debugZmq(`${sequence - lastSequence - 1} messages lost`)
     }
+    lastSequence = sequence
 
     if (topic === 'hashblock') {
       debugZmq(topic, message)
