@@ -63,8 +63,8 @@ function iterator (type, options, forEach, callback) {
     if (err) return iterator.end(() => callback(err))
     if (key === undefined || value === undefined) return iterator.end(callback)
 
-    key = type.key ? type.key.encode(key) : undefined
-    value = type.value ? type.value.encode(value) : undefined
+    key = type.key ? type.key.decode(key) : undefined
+    value = type.value ? type.value.decode(value) : undefined
 
     forEach(key, value)
     iterator.next(loop)
