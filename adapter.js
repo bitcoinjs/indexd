@@ -1,5 +1,4 @@
 let dbwrapper = require('./dbwrapper')
-let parallel = require('run-parallel')
 let { EventEmitter } = require('events')
 
 let Blockchain = require('./blockchain')
