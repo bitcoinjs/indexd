@@ -42,11 +42,11 @@ function put (type, key, value, callback) {
 
 function iterator (type, options, forEach, callback) {
   typeforce({
-    gt: typeforce.Maybe(type.keyType),
-    gte: typeforce.Maybe(type.keyType),
-    lt: typeforce.Maybe(type.keyType),
-    lte: typeforce.Maybe(type.keyType),
-    limit: typeforce.Maybe(typeforce.UInt53)
+    gt: typeforce.maybe(type.keyType),
+    gte: typeforce.maybe(type.keyType),
+    lt: typeforce.maybe(type.keyType),
+    lte: typeforce.maybe(type.keyType),
+    limit: typeforce.maybe(typeforce.UInt53)
   }, options)
 
   // don't mutate
