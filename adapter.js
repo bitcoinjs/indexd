@@ -40,6 +40,26 @@ Mempool.prototype.reset = function (callback) {
   })
 }
 
+Mempool.prototype.knownScript = function (scId) {
+  return Boolean(this.scripts[scId])
+}
+
+Mempool.prototype.spentFromTxo = function ({ txId, vout }) {
+  return this.spents[`${txId}:${vout}`]
+}
+
+Mempool.prototype.txosByScript = function (scId) {
+  let txos = this.scripts[scId]
+  if (!txos) return {}
+
+  let resultMap = {}
+  txos.forEach(({ txId, vout }) => {
+    resultMap[`${txId}:${vout}`] = { txId, vout, scId }
+  })
+
+  return resultMap
+}
+
 function getOrSetDefault (object, key, defaultValue) {
   let existing = object[key]
   if (existing !== undefined) return existing
@@ -210,9 +230,7 @@ Adapter.prototype.knownScript = function (scId, callback) {
     if (err) return callback(err)
     if (result) return callback(null, result)
 
-    // maybe the mempool?
-    let txos = this.mempool.scripts[scId]
-    callback(null, Boolean(txos))
+    callback(null, this.mempool.knownScript(scId))
   })
 }
 
@@ -234,24 +252,18 @@ Adapter.prototype.txosByScript = function (scId, height, callback) {
   }, (err) => {
     if (err) return callback(err)
 
-    // merge with mempool
-    let txos = this.mempool.scripts[scId]
-    if (!txos) return
-
-    txos.forEach(({ txId, vout }) => {
-      resultMap[`${txId}:${vout}`] = { txId, vout, scId }
-    })
-
+    Object.assign(resultMap, this.mempool.txosByScript(scId))
     callback(null, resultMap)
   })
 }
 
 Adapter.prototype.spentFromTxo = function (txo, callback) {
-  this.db.get(types.spentIndex, txo, (err, spent) => {
+  this.db.get(types.spentIndex, txo, (err, result) => {
     if (err && err.notFound) return callback()
     if (err) return callback(err)
+    if (result) return callback(null, result)
 
-    callback(null, spent)
+    callback(null, this.mempool.spentFromTxo(txo))
   })
 }
 
@@ -263,13 +275,7 @@ Adapter.prototype.transactionsByScript = function (scId, height, callback) {
     for (let txoKey in txosMap) {
       let txo = txosMap[txoKey]
 
-      taskMap[txoKey] = (next) => {
-        this.spentFromTxo(txo, (err, spent) => {
-          if (err) return next(err)
-
-          next(null, spent)
-        })
-      }
+      taskMap[txoKey] = (next) => this.spentFromTxo(txo, next)
     }
 
     parallel(taskMap, (err, spentMap) => {
