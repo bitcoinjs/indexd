@@ -44,8 +44,8 @@ Mempool.prototype.knownScript = function (scId) {
   return Boolean(this.scripts[scId])
 }
 
-Mempool.prototype.spentFromTxo = function ({ txId, vout }) {
-  return this.spents[`${txId}:${vout}`]
+Mempool.prototype.spentsFromTxo = function ({ txId, vout }) {
+  return this.spents[`${txId}:${vout}`] || []
 }
 
 Mempool.prototype.txosByScript = function (scId) {
@@ -111,6 +111,57 @@ Mempool.prototype.add = function (txId, callback) {
 
     this.emitter.emit('transaction', txId, txBuffer)
     callback()
+  })
+}
+
+function Blockchain (db, rpc) {
+  this.db = db
+  this.rpc = rpc
+}
+
+Blockchain.prototype.blockByTransaction = function (txId, callback) {
+  this.db.get(types.txIndex, txId, (err, height) => {
+    if (err && err.notFound) return callback()
+    if (err) return callback(err)
+
+    this.rpc('getblockhash', [height], callback)
+  })
+}
+
+Blockchain.prototype.knownScript = function (scId, callback) {
+  let result = false
+
+  this.db.iterator(types.scIndex, {
+    gte: { scId, height: 0, txId: ZERO64, vout: 0 },
+    limit: 1
+  }, () => {
+    result = true
+  }, (err) => callback(err, result))
+}
+
+Blockchain.prototype.tip = function (callback) {
+  this.db.get(types.tip, {}, (err, blockId) => {
+    if (err && err.notFound) return callback()
+    callback(err, blockId)
+  })
+}
+
+Blockchain.prototype.txosByScript = function (scId, height, callback) {
+  let resultMap = {}
+
+  this.db.iterator(types.scIndex, {
+    gte: { scId, height, txId: ZERO64, vout: 0 }
+  }, ({ txId, vout, height }) => {
+    resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
+  }, (err) => callback(err, resultMap))
+}
+
+Blockchain.prototype.spentFromTxo = function (txo, callback) {
+  this.db.get(types.spentIndex, txo, (err, result) => {
+    if (err && err.notFound) return callback()
+    if (err) return callback(err)
+
+    callback(null, result)
   })
 }
 
@@ -210,46 +261,25 @@ Adapter.prototype.disconnect = function (blockId, callback) {
 
 // queries
 Adapter.prototype.blockByTransaction = function (txId, callback) {
-  this.db.get(types.txIndex, txId, (err, height) => {
-    if (err && err.notFound) return callback()
-    if (err) return callback(err)
-
-    this.rpc('getblockhash', [height], callback)
-  })
+  return this.blockchain.blockByTransaction(txId, callback)
 }
 
 Adapter.prototype.knownScript = function (scId, callback) {
-  let result = false
-
-  this.db.iterator(types.scIndex, {
-    gte: { scId, height: 0, txId: ZERO64, vout: 0 },
-    limit: 1
-  }, () => {
-    result = true
-  }, (err) => {
+  this.blockchain.knownScript(scId, (err, result) => {
     if (err) return callback(err)
-    if (result) return callback(null, result)
-
-    callback(null, this.mempool.knownScript(scId))
+    callback(null, result || this.mempool.knownScript(scId))
   })
 }
 
 Adapter.prototype.tip = function (callback) {
-  this.db.get(types.tip, {}, (err, blockId) => {
-    if (err && err.notFound) return callback()
-    callback(err, blockId)
-  })
+  return this.blockchain.tip(callback)
 }
 
 let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
 Adapter.prototype.txosByScript = function (scId, height, callback) {
   let resultMap = {}
 
-  this.db.iterator(types.scIndex, {
-    gte: { scId, height, txId: ZERO64, vout: 0 }
-  }, ({ txId, vout, height }) => {
-    resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
-  }, (err) => {
+  this.blockchain.txosByScript(scId, height, (err, txosMap) => {
     if (err) return callback(err)
 
     Object.assign(resultMap, this.mempool.txosByScript(scId))
@@ -257,13 +287,15 @@ Adapter.prototype.txosByScript = function (scId, height, callback) {
   })
 }
 
-Adapter.prototype.spentFromTxo = function (txo, callback) {
-  this.db.get(types.spentIndex, txo, (err, result) => {
-    if (err && err.notFound) return callback()
-    if (err) return callback(err)
-    if (result) return callback(null, result)
+Adapter.prototype.spentsFromTxo = function (txo, callback) {
+  this.blockchain.spentFromTxo(txo, (err, spent) => {
+    if (err && !err.notFound) return callback(err)
 
-    callback(null, this.mempool.spentFromTxo(txo))
+    // if in blockchain, ignore the mempool
+    if (spent) return callback(null, [spent])
+
+    // otherwise, could be multiple spents in the mempool
+    callback(null, this.mempool.spentsFromTxo(txo))
   })
 }
 
@@ -275,7 +307,7 @@ Adapter.prototype.transactionsByScript = function (scId, height, callback) {
     for (let txoKey in txosMap) {
       let txo = txosMap[txoKey]
 
-      taskMap[txoKey] = (next) => this.spentFromTxo(txo, next)
+      taskMap[txoKey] = (next) => this.spentsFromTxo(txo, next)
     }
 
     parallel(taskMap, (err, spentMap) => {
@@ -284,10 +316,12 @@ Adapter.prototype.transactionsByScript = function (scId, height, callback) {
       let txIds = {}
 
       for (let x in spentMap) {
-        let spent = spentMap[x]
-        if (!spent) continue
+        let spents = spentMap[x]
+        if (!spents) continue
 
-        txIds[spent.txId] = true
+        spents.forEach(({ txId }) => {
+          txIds[txId] = true
+        })
       }
 
       for (let x in txosMap) {
