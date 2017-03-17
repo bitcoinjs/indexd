@@ -136,4 +136,37 @@ Blockchain.prototype.spentFromTxo = function (txo, callback) {
   })
 }
 
+Blockchain.prototype.transactionsByScript = function (scId, height, callback) {
+  this.txosByScript(scId, height, (err, txosMap) => {
+    if (err) return callback(err)
+
+    let taskMap = {}
+    for (let txoKey in txosMap) {
+      let txo = txosMap[txoKey]
+
+      taskMap[txoKey] = (next) => this.spentFromTxo(txo, next)
+    }
+
+    parallel(taskMap, (err, spentMap) => {
+      if (err) return callback(err)
+
+      let txIds = {}
+
+      for (let x in spentMap) {
+        let spent = spentMap[x]
+        if (!spent) continue
+
+        txIds[spent.txId] = true
+      }
+
+      for (let x in txosMap) {
+        let { txId } = txosMap[x]
+        txIds[txId] = true
+      }
+
+      callback(null, txIds)
+    })
+  })
+}
+
 module.exports = Blockchain

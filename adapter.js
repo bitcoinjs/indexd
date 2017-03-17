@@ -62,37 +62,11 @@ Adapter.prototype.spentsFromTxo = function (txo, callback) {
 }
 
 Adapter.prototype.transactionsByScript = function (scId, height, callback) {
-  this.txosByScript(scId, height, (err, txosMap) => {
+  this.blockchain.transactionsByScript(scId, height, (err, txIds) => {
     if (err) return callback(err)
 
-    let taskMap = {}
-    for (let txoKey in txosMap) {
-      let txo = txosMap[txoKey]
-
-      taskMap[txoKey] = (next) => this.spentsFromTxo(txo, next)
-    }
-
-    parallel(taskMap, (err, spentMap) => {
-      if (err) return callback(err)
-
-      let txIds = {}
-
-      for (let x in spentMap) {
-        let spents = spentMap[x]
-        if (!spents) continue
-
-        spents.forEach(({ txId }) => {
-          txIds[txId] = true
-        })
-      }
-
-      for (let x in txosMap) {
-        let { txId } = txosMap[x]
-        txIds[txId] = true
-      }
-
-      callback(null, txIds)
-    })
+    Object.assign(txIds, this.mempool.transactionsByScript(scId))
+    callback(null, txIds)
   })
 }
 

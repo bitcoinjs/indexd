@@ -10,6 +10,13 @@ function Mempool (emitter, rpc) {
   this.txos = {}
 }
 
+function getOrSetDefault (object, key, defaultValue) {
+  let existing = object[key]
+  if (existing !== undefined) return existing
+  object[key] = defaultValue
+  return defaultValue
+}
+
 let waiting
 Mempool.prototype.add = function (txId, callback) {
   this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
@@ -103,11 +110,32 @@ Mempool.prototype.txosByScript = function (scId) {
   return resultMap
 }
 
-function getOrSetDefault (object, key, defaultValue) {
-  let existing = object[key]
-  if (existing !== undefined) return existing
-  object[key] = defaultValue
-  return defaultValue
+Mempool.prototype.transactionsByScript = function (scId) {
+  let txosMap = this.txosByScript(scId)
+  let spentsMap = {}
+
+  for (let txoKey in txosMap) {
+    let txo = txosMap[txoKey]
+    spentsMap[txoKey] = this.spentsFromTxo(txo)
+  }
+
+  let txIds = {}
+
+  for (let x in spentsMap) {
+    let spents = spentsMap[x]
+    if (!spents) continue
+
+    spents.forEach(({ txId }) => {
+      txIds[txId] = true
+    })
+  }
+
+  for (let x in txosMap) {
+    let { txId } = txosMap[x]
+    txIds[txId] = true
+  }
+
+  return txIds
 }
 
 module.exports = Mempool
