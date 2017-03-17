@@ -90,6 +90,7 @@ Mempool.prototype.reset = function (callback) {
   })
 }
 
+// QUERIES
 Mempool.prototype.knownScript = function (scId) {
   return Boolean(this.scripts[scId])
 }
