@@ -8,6 +8,12 @@ function Mempool (emitter, rpc) {
   this.scripts = {}
   this.spents = {}
   this.txos = {}
+
+  this.statistics = {
+    transactions: 0,
+    inputs: 0,
+    outputs: 0
+  }
 }
 
 function getOrSetDefault (object, key, defaultValue) {
