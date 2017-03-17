@@ -52,7 +52,7 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
 
 Blockchain.prototype.disconnect = function (blockId, callback) {
   parallel({
-    blockHeader: (f) => this.rpc('getblockheader', [blockId], f),
+    blockHeader: (f) => this.rpc('getblockheader', [blockId, true], f),
     blockHex: (f) => this.rpc('getblock', [blockId, false], f)
   }, (err, result) => {
     if (err) return callback(err)
