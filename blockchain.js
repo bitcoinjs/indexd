@@ -100,12 +100,13 @@ Blockchain.prototype.blockByTransaction = function (txId, callback) {
   })
 }
 
+let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
 Blockchain.prototype.knownScript = function (scId, callback) {
   let result = false
 
   this.db.iterator(types.scIndex, {
     gte: { scId, height: 0, txId: ZERO64, vout: 0 },
-    lte: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 },
+    lt: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 },
     limit: 1
   }, () => {
     result = true
@@ -119,13 +120,12 @@ Blockchain.prototype.tip = function (callback) {
   })
 }
 
-let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
 Blockchain.prototype.txosByScript = function (scId, height, callback) {
   let resultMap = {}
 
   this.db.iterator(types.scIndex, {
     gte: { scId, height, txId: ZERO64, vout: 0 },
-    lte: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 }
+    lt: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 }
   }, ({ txId, vout, height }) => {
     resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
   }, (err) => callback(err, resultMap))
