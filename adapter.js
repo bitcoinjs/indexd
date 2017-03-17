@@ -10,7 +10,7 @@ function Adapter (db, rpc) {
   this.emitter = new EventEmitter()
   this.emitter.setMaxListeners(Infinity)
 
-  this.blockchain = new Blockchain(this.db, rpc)
+  this.blockchain = new Blockchain(this.emitter, this.db, rpc)
   this.mempool = new Mempool(this.emitter, rpc)
 }
 

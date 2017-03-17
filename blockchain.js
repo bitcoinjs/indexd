@@ -3,7 +3,8 @@ let debug = require('debug')('blockchain')
 let parallel = require('run-parallel')
 let types = require('./types')
 
-function Blockchain (db, rpc) {
+function Blockchain (emitter, db, rpc) {
+  this.emitter = emitter
   this.db = db
   this.rpc = rpc
 }
