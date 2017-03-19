@@ -23,6 +23,7 @@ function get (type, key, callback) {
   key = type.key ? type.key.encode(key) : NIL
 
   this.get(key, (err, value) => {
+    if (err && (/NotFound/).test(err)) return callback()
     if (err) return callback(err)
     if (!type.value) return callback()
 

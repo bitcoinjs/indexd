@@ -93,8 +93,8 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
 // QUERIES
 Blockchain.prototype.blockByTransaction = function (txId, callback) {
   this.db.get(types.txIndex, { txId }, (err, row) => {
-    if (err && err.notFound) return callback()
     if (err) return callback(err)
+    if (!row) return callback()
 
     this.rpc('getblockhash', [row.height], callback)
   })
@@ -114,10 +114,7 @@ Blockchain.prototype.knownScript = function (scId, callback) {
 }
 
 Blockchain.prototype.tip = function (callback) {
-  this.db.get(types.tip, {}, (err, blockId) => {
-    if (err && err.notFound) return callback()
-    callback(err, blockId)
-  })
+  this.db.get(types.tip, {}, callback)
 }
 
 Blockchain.prototype.txosByScript = function (scId, height, callback) {
@@ -132,12 +129,7 @@ Blockchain.prototype.txosByScript = function (scId, height, callback) {
 }
 
 Blockchain.prototype.spentFromTxo = function (txo, callback) {
-  this.db.get(types.spentIndex, txo, (err, result) => {
-    if (err && err.notFound) return callback()
-    if (err) return callback(err)
-
-    callback(null, result)
-  })
+  this.db.get(types.spentIndex, txo, callback)
 }
 
 Blockchain.prototype.transactionsByScript = function (scId, height, callback) {
