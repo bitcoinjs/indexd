@@ -92,7 +92,7 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
 
 // QUERIES
 Blockchain.prototype.blockByTransaction = function (txId, callback) {
-  this.db.get(types.txIndex, txId, (err, height) => {
+  this.db.get(types.txIndex, { txId }, (err, height) => {
     if (err && err.notFound) return callback()
     if (err) return callback(err)
 
