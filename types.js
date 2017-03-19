@@ -6,7 +6,6 @@ let Hex64t = typeforce.HexN(64)
 let blockId = Hex64
 let txId = Hex64
 let scId = Hex64
-let height = vstruct.UInt32BE // big-endian for lexicographical sort
 let vout = vstruct.UInt32LE
 let satoshis = vstruct.UInt64LE
 
@@ -29,7 +28,7 @@ let scIndex = {
   key: vstruct([
     ['prefix', vstruct.Value(vstruct.UInt8, 0x01)],
     ['scId', scId],
-    ['height', height],
+    ['height', vstruct.UInt32BE], // big-endian for lexicographical sort
     ['txId', txId],
     ['vout', vout]
   ]),
@@ -69,7 +68,7 @@ let txIndex = {
     height: typeforce.UInt32
   }),
   value: vstruct([
-    ['height', height]
+    ['height', vstruct.UInt32LE]
   ])
 }
 
@@ -101,7 +100,7 @@ let txoIndex = {
 //   prefix: 0x11,
 //   key: vstruct([
 //     ['prefix', vstruct.Value(vstruct.UInt8, 0x11)],
-//     ['height', height],
+//     ['height', vstruct.UInt32BE], // big-endian for lexicographical sort
 //   ]),
 //   value: vstruct([
 //     ['size', vstruct.UInt32LE],
