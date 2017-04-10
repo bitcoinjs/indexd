@@ -113,6 +113,10 @@ Blockchain.prototype.knownScript = function (scId, callback) {
   }, (err) => callback(err, result))
 }
 
+Blockchain.prototype.spentFromTxo = function (txo, callback) {
+  this.db.get(types.spentIndex, txo, callback)
+}
+
 Blockchain.prototype.tip = function (callback) {
   this.db.get(types.tip, {}, callback)
 }
@@ -126,10 +130,6 @@ Blockchain.prototype.txosByScript = function (scId, height, callback) {
   }, ({ txId, vout, height }) => {
     resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
   }, (err) => callback(err, resultMap))
-}
-
-Blockchain.prototype.spentFromTxo = function (txo, callback) {
-  this.db.get(types.spentIndex, txo, callback)
 }
 
 Blockchain.prototype.transactionsByScript = function (scId, height, callback) {
