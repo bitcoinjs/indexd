@@ -20,13 +20,15 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
     block.transactions.forEach((tx) => {
       let txId = tx.getId()
 
-      tx.ins.forEach(({ hash, index: vout }, vin) => {
+      tx.ins.forEach((input, vin) => {
+        let { hash, index: vout } = input
         if (bitcoin.Transaction.isCoinbaseHash(hash)) return
 
-        let prevTxId = hash.reverse().toString('hex')
+        // NOTE: destructively mutates hash
+        input.txId = hash.reverse().toString('hex')
 
-        atomic.put(types.spentIndex, { txId: prevTxId, vout }, { txId, vin })
-        this.emitter.emit('spent', `${prevTxId}:${vout}`, txId)
+        atomic.put(types.spentIndex, { txId: input.txId, vout }, { txId, vin })
+        this.emitter.emit('spent', `${input.txId}:${vout}`, txId)
       })
 
       tx.outs.forEach(({ script, value }, vout) => {
@@ -47,7 +49,8 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
     atomic.put(types.tip, {}, blockId).write((err) => {
       if (err) return callback(err)
 
-      this.connect2ndOrder(block, blockId, height, callback)
+      // TODO: remove length param
+      this.connect2ndOrder(block, blockBuffer.length, blockId, height, callback)
     })
   })
 }
@@ -63,7 +66,7 @@ function box (data) {
   }
 }
 
-Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callback) {
+Blockchain.prototype.connect2ndOrder = function (block, blockSize, blockId, height, callback) {
   let feeRates = []
   let tasks = []
 
@@ -71,31 +74,37 @@ Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callbac
     let inAccum = 0
     let outAccum = 0
     let subTasks = []
-    let skip = false
+    let coinbase = false
 
-    tx.ins.forEach(({ hash, index: vout }, vin) => {
+    tx.ins.forEach(({ txId, hash, index: vout }, vin) => {
       if (bitcoin.Transaction.isCoinbaseHash(hash)) {
-        skip = true
+        coinbase = true
         return
       }
+      if (coinbase) return
 
-      let prevTxId = hash.reverse().toString('hex')
       subTasks.push((next) => {
-        this.db.get(types.txoIndex, { txId: prevTxId, vout }, (err, output) => {
+        this.db.get(types.txoIndex, { txId, vout }, (err, output) => {
           if (err) return next(err)
-          if (!output) return next(new Error(`Missing ${prevTxId}:${vout}`))
+          if (!output) return next()
+          if (!output) return next(new Error(`Missing ${txId}:${vout}`))
 
           inAccum += output.value
+          next()
         })
       })
     })
 
-    if (skip) return
     tx.outs.forEach(({ value }, vout) => {
       outAccum += value
     })
 
     tasks.push((next) => {
+      if (coinbase) {
+        feeRates.push(0)
+        return next()
+      }
+
       parallel(subTasks, (err) => {
         if (err) return next(err)
         let fee = inAccum - outAccum
@@ -103,6 +112,7 @@ Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callbac
         let feeRate = Math.floor(fee / size)
 
         feeRates.push(feeRate)
+        next()
       })
     })
   })
@@ -113,7 +123,7 @@ Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callbac
     let atomic = this.db.atomic()
     feeRates = feeRates.sort((a, b) => a - b)
 
-    atomic.put(types.feeIndex, { height }, { fees: box(feeRates) })
+    atomic.put(types.feeIndex, { height }, { fees: box(feeRates), size: blockSize })
     callback()
   })
 }
@@ -136,6 +146,7 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
       tx.ins.forEach(({ hash, index: vout }) => {
         if (bitcoin.Transaction.isCoinbaseHash(hash)) return
 
+        // NOTE: destructively mutates hash
         let prevTxId = hash.reverse().toString('hex')
 
         atomic.del(types.spentIndex, { txId: prevTxId, vout })
@@ -151,8 +162,8 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
       atomic.del(types.txIndex, { txId }, { height })
     })
 
-    // TODO: add helper to bitcoinjs-lib?
-    let previousBlockId = Buffer.from(block.prevHash).reverse().toString('hex')
+    // NOTE: destructively mutates prevHash
+    let previousBlockId = block.prevHash.reverse().toString('hex')
     debug(`Deleting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
     atomic.put(types.tip, {}, previousBlockId).write(callback)
   })
