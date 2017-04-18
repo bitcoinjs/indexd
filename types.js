@@ -91,7 +91,6 @@ let txoIndex = {
 }
 
 let feeIndex = {
-  prefix: 0x11,
   keyType: typeforce.compile({
     height: typeforce.UInt32
   }),
@@ -100,20 +99,20 @@ let feeIndex = {
     ['height', vstruct.UInt32BE] // big-endian for lexicographical sort
   ]),
   valueType: typeforce.compile({
+    size: typeforce.UInt32,
     fees: {
       q1: typeforce.UInt53,
       median: typeforce.UInt53,
       q3: typeforce.UInt53
-    },
-    size: typeforce.UInt32
+    }
   }),
   value: vstruct([
+    ['size', vstruct.UInt32LE],
     ['fees', vstruct([
       ['q1', satoshis],
       ['median', satoshis],
       ['q3', satoshis]
-    ])],
-    ['size', vstruct.UInt32LE]
+    ])]
   ])
 }
 
