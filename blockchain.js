@@ -46,7 +46,8 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
 
     this.emitter.emit('block', blockId, blockBuffer, height)
     debug(`Putting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
-    atomic.put(types.tip, {}, blockId).write((err) => {
+    atomic.put(types.tip, {}, blockId)
+    atomic.write((err) => {
       if (err) return callback(err)
 
       // TODO: remove length param
@@ -125,7 +126,7 @@ Blockchain.prototype.connect2ndOrder = function (block, blockSize, blockId, heig
     feeRates = feeRates.sort((a, b) => a - b)
 
     atomic.put(types.feeIndex, { height }, { fees: box(feeRates), size: blockSize })
-    callback()
+    atomic.write(callback)
   })
 }
 
@@ -166,7 +167,8 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
     // NOTE: destructively mutates prevHash
     let previousBlockId = block.prevHash.reverse().toString('hex')
     debug(`Deleting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
-    atomic.put(types.tip, {}, previousBlockId).write(callback)
+    atomic.put(types.tip, {}, previousBlockId)
+    atomic.write(callback)
   })
 }
 
