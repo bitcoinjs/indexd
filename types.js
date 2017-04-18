@@ -108,12 +108,12 @@ let feeIndex = {
     size: typeforce.UInt32
   }),
   value: vstruct([
-    ['size', vstruct.UInt32LE],
     ['fees', vstruct([
       ['q1', satoshis],
       ['median', satoshis],
       ['q3', satoshis]
-    ])]
+    ])],
+    ['size', vstruct.UInt32LE]
   ])
 }
 
