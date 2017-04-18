@@ -86,6 +86,7 @@ Blockchain.prototype.connect2ndOrder = function (block, blockSize, blockId, heig
       subTasks.push((next) => {
         this.db.get(types.txoIndex, { txId, vout }, (err, output) => {
           if (err) return next(err)
+          // TODO: what??
           if (!output) return next()
           if (!output) return next(new Error(`Missing ${txId}:${vout}`))
 
@@ -209,6 +210,10 @@ Blockchain.prototype.txosByScript = function (scId, height, callback) {
   }, ({ txId, vout, height }) => {
     resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
   }, (err) => callback(err, resultMap))
+}
+
+Blockchain.prototype.txoByTxo = function (txId, vout, callback) {
+  this.db.get(types.txoIndex, { txId, vout }, callback)
 }
 
 Blockchain.prototype.transactionsByScript = function (scId, height, callback) {
