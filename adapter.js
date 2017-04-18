@@ -48,9 +48,21 @@ Adapter.prototype.txosByScript = function (scId, height, callback) {
   })
 }
 
+Adapter.prototype.txoByTxo = function (txId, vout, callback) {
+  this.blockchain.txoByTxo(txId, vout, (err, txo) => {
+    if (err) return callback(err)
+
+    // if in blockchain, ignore the mempool
+    if (txo) return callback(null, txo)
+
+    // otherwise, could be multiple spents in the mempool
+    callback(null, this.mempool.txoByTxo(txId, vout))
+  })
+}
+
 Adapter.prototype.spentsFromTxo = function (txo, callback) {
   this.blockchain.spentFromTxo(txo, (err, spent) => {
-    if (err && !err.notFound) return callback(err)
+    if (err) return callback(err)
 
     // if in blockchain, ignore the mempool
     if (spent) return callback(null, [spent])

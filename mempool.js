@@ -117,6 +117,10 @@ Mempool.prototype.txosByScript = function (scId) {
   return resultMap
 }
 
+Mempool.prototype.txoByTxo = function (txId, vout) {
+  return this.txos[`${txId}:${vout}`]
+}
+
 Mempool.prototype.transactionsByScript = function (scId) {
   let txosMap = this.txosByScript(scId)
   let spentsMap = {}
