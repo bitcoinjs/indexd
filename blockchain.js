@@ -180,6 +180,25 @@ Blockchain.prototype.blockByTransaction = function (txId, callback) {
   })
 }
 
+Blockchain.prototype.fees = function (n, callback) {
+  this.db.get(types.tip, {}, (err, tipId) => {
+    if (err) return callback(err)
+
+    this.rpc('getblockheader', [tipId, true], (err, header) => {
+      if (err) return callback(err)
+
+      let { height: tipHeight } = header
+      let result = []
+
+      this.db.iterator(types.feeIndex, {
+        gte: { height: tipHeight - n }
+      }, ({ height }, { fees, size }) => {
+        result.push({ height, fees, size })
+      }, (err) => callback(err, result))
+    })
+  })
+}
+
 let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
 Blockchain.prototype.knownScript = function (scId, callback) {
   let result = false
