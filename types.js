@@ -100,12 +100,12 @@ let feeIndex = {
     ['height', vstruct.UInt32BE] // big-endian for lexicographical sort
   ]),
   valueType: typeforce.compile({
-    size: typeforce.UInt32,
     fees: {
       q1: typeforce.UInt53,
       median: typeforce.UInt53,
       q3: typeforce.UInt53
-    }
+    },
+    size: typeforce.UInt32
   }),
   value: vstruct([
     ['size', vstruct.UInt32LE],
