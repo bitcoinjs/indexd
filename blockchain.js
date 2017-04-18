@@ -26,7 +26,6 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
         let prevTxId = hash.reverse().toString('hex')
 
         atomic.put(types.spentIndex, { txId: prevTxId, vout }, { txId, vin })
-
         this.emitter.emit('spent', `${prevTxId}:${vout}`, txId)
       })
 
@@ -35,7 +34,6 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
 
         atomic.put(types.scIndex, { scId, height, txId, vout }, null)
         atomic.put(types.txoIndex, { txId, vout }, { value })
-
         this.emitter.emit('script', scId, txId)
       })
 
