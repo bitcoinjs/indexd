@@ -44,7 +44,77 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
 
     this.emitter.emit('block', blockId, blockBuffer, height)
     debug(`Putting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
-    atomic.put(types.tip, {}, blockId).write(callback)
+    atomic.put(types.tip, {}, blockId).write((err) => {
+      if (err) return callback(err)
+
+      this.connect2ndOrder(block, blockId, height, callback)
+    })
+  })
+}
+
+function box (data) {
+  let quarter = (data.length / 4) | 0
+  let midpoint = (data.length / 2) | 0
+
+  return {
+    q1: data[quarter],
+    median: data[midpoint],
+    q3: data[midpoint + quarter]
+  }
+}
+
+Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callback) {
+  let feeRates = []
+  let tasks = []
+
+  block.transactions.forEach((tx) => {
+    let inAccum = 0
+    let outAccum = 0
+    let subTasks = []
+    let skip = false
+
+    tx.ins.forEach(({ hash, index: vout }, vin) => {
+      if (bitcoin.Transaction.isCoinbaseHash(hash)) {
+        skip = true
+        return
+      }
+
+      let prevTxId = hash.reverse().toString('hex')
+      subTasks.push((next) => {
+        this.db.get(types.txoIndex, { txId: prevTxId, vout }, (err, output) => {
+          if (err) return next(err)
+          if (!output) return next(new Error(`Missing ${prevTxId}:${vout}`))
+
+          inAccum += output.value
+        })
+      })
+    })
+
+    if (skip) return
+    tx.outs.forEach(({ value }, vout) => {
+      outAccum += value
+    })
+
+    tasks.push((next) => {
+      parallel(subTasks, (err) => {
+        if (err) return next(err)
+        let fee = inAccum - outAccum
+        let size = tx.byteLength()
+        let feeRate = Math.floor(fee / size)
+
+        feeRates.push(feeRate)
+      })
+    })
+  })
+
+  parallel(tasks, (err) => {
+    if (err) return callback(err)
+
+    let atomic = this.db.atomic()
+    feeRates = feeRates.sort((a, b) => a - b)
+
+    atomic.put(types.feeIndex, { height }, { fees: box(feeRates) })
+    callback()
   })
 }
 

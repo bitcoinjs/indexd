@@ -90,25 +90,35 @@ let txoIndex = {
   ])
 }
 
-// TODO
-// let feeIQR = vstruct([
-//   ['q1', satoshis],
-//   ['median', satoshis],
-//   ['q3', satoshis]
-// ])
-// let fees = {
-//   prefix: 0x11,
-//   key: vstruct([
-//     ['prefix', vstruct.Value(vstruct.UInt8, 0x11)],
-//     ['height', vstruct.UInt32BE], // big-endian for lexicographical sort
-//   ]),
-//   value: vstruct([
-//     ['size', vstruct.UInt32LE],
-//     ['fees', feeIQR]
-//   ])
-// }
+let feeIndex = {
+  prefix: 0x11,
+  keyType: typeforce.compile({
+    height: typeforce.UInt32
+  }),
+  key: vstruct([
+    ['prefix', vstruct.Value(vstruct.UInt8, 0x11)],
+    ['height', vstruct.UInt32BE] // big-endian for lexicographical sort
+  ]),
+  valueType: typeforce.compile({
+    size: typeforce.UInt32,
+    fees: {
+      q1: typeforce.UInt53,
+      median: typeforce.UInt53,
+      q3: typeforce.UInt53
+    }
+  }),
+  value: vstruct([
+    ['size', vstruct.UInt32LE],
+    ['fees', vstruct([
+      ['q1', satoshis],
+      ['median', satoshis],
+      ['q3', satoshis]
+    ])]
+  ])
+}
 
 module.exports = {
+  feeIndex,
   scIndex,
   spentIndex,
   txIndex,
