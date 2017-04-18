@@ -17,8 +17,8 @@ Adapter.prototype.connect = function (blockId, height, callback) {
   this.blockchain.connect(blockId, height, callback)
 }
 
-Adapter.prototype.disconnect = function (blockId, height, callback) {
-  this.blockchain.disconnect(blockId, height, callback)
+Adapter.prototype.disconnect = function (blockId, callback) {
+  this.blockchain.disconnect(blockId, callback)
 }
 
 // queries
