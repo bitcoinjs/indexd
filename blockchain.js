@@ -50,8 +50,7 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
     atomic.write((err) => {
       if (err) return callback(err)
 
-      // TODO: remove length param
-      this.connect2ndOrder(block, blockBuffer.length, blockId, height, callback)
+      this.connect2ndOrder(block, blockId, height, callback)
     })
   })
 }
@@ -67,7 +66,7 @@ function box (data) {
   }
 }
 
-Blockchain.prototype.connect2ndOrder = function (block, blockSize, blockId, height, callback) {
+Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callback) {
   let feeRates = []
   let tasks = []
 
@@ -123,7 +122,7 @@ Blockchain.prototype.connect2ndOrder = function (block, blockSize, blockId, heig
     let atomic = this.db.atomic()
     feeRates = feeRates.sort((a, b) => a - b)
 
-    atomic.put(types.feeIndex, { height }, { fees: box(feeRates), size: blockSize })
+    atomic.put(types.feeIndex, { height }, { fees: box(feeRates), size: block.byteLength() })
     atomic.write(callback)
   })
 }
