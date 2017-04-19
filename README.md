@@ -5,6 +5,9 @@
 
 An external [bitcoind](https://github.com/bitcoin/bitcoin) index management service.
 
+## Indexes
+By default,  this module maintains script, spents, transaction, txout and block indexes.
+
 
 ## Example
 Uses [`yajrpc`](https://github.com/dcousens/yajrpc) for the bitcoind RPC;
