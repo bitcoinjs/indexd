@@ -87,8 +87,6 @@ Blockchain.prototype.connect2ndOrder = function (block, blockSize, blockId, heig
       subTasks.push((next) => {
         this.db.get(types.txoIndex, { txId, vout }, (err, output) => {
           if (err) return next(err)
-          // TODO: what??
-          if (!output) return next()
           if (!output) return next(new Error(`Missing ${txId}:${vout}`))
 
           inAccum += output.value
