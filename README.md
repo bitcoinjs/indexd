@@ -7,6 +7,9 @@ An external [bitcoind](https://github.com/bitcoin/bitcoin) index management serv
 
 ## Indexes
 By default,  this module maintains script, spents, transaction, txout and block indexes.
+The module uses `getblockheader`, `getblock` and `getbestblockhash` RPC methods, solely.
+
+`-txindex` is **not required** for this module.
 
 
 ## Example
