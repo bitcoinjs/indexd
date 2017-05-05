@@ -22,8 +22,8 @@ Adapter.prototype.disconnect = function (blockId, callback) {
 }
 
 // queries
-Adapter.prototype.blockByTransaction = function (txId, callback) {
-  this.blockchain.blockByTransaction(txId, callback)
+Adapter.prototype.blockIdByTransaction = function (txId, callback) {
+  this.blockchain.blockIdByTransaction(txId, callback)
 }
 
 Adapter.prototype.fees = function (n, callback) {

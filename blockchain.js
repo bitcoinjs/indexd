@@ -170,7 +170,7 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
 }
 
 // QUERIES
-Blockchain.prototype.blockByTransaction = function (txId, callback) {
+Blockchain.prototype.blockIdByTransaction = function (txId, callback) {
   this.db.get(types.txIndex, { txId }, (err, row) => {
     if (err) return callback(err)
     if (!row) return callback()
