@@ -26,6 +26,10 @@ Adapter.prototype.blockByTransaction = function (txId, callback) {
   this.blockchain.blockByTransaction(txId, callback)
 }
 
+Adapter.prototype.fees = function (n, callback) {
+  this.blockchain.fees(n, callback)
+}
+
 Adapter.prototype.knownScript = function (scId, callback) {
   this.blockchain.knownScript(scId, (err, result) => {
     if (err) return callback(err)
