@@ -71,7 +71,7 @@ module.exports = function resync (rpc, local, callback) {
       }
       if (err) return callback(err)
 
-      // behind
+      // local is behind
       debug('bitcoind is ahead')
       connectBlock(rpc, local, common.nextblockhash, common.height + 1, callback)
     })
