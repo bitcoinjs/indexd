@@ -40,7 +40,7 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
       })
 
       let txBuffer = tx.toBuffer() // TODO: maybe we can slice this in fromBuffer
-      this.emitter.emit('transaction', txId, txBuffer)
+      this.emitter.emit('transaction', txId, txBuffer, blockId)
       atomic.put(types.txIndex, { txId }, { height })
     })
 
