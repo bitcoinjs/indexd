@@ -116,6 +116,7 @@ Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callbac
     })
   })
 
+  debug(`Putting Order2 data ${blockId} @ ${height}`)
   parallel(tasks, (err) => {
     if (err) return callback(err)
 
