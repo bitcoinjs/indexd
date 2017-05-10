@@ -27,7 +27,7 @@ let waiting
 Mempool.prototype.add = function (txId, callback) {
   this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
     if (err && /No such mempool or blockchain transaction/.test(err)) {
-      debug(new Error(`${txId} unknown`))
+      debug(`${txId} dropped`)
       return callback()
     }
     if (err) return callback(err)
