@@ -19,6 +19,7 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
 
     block.transactions.forEach((tx) => {
       let txId = tx.getId()
+      let txBuffer = tx.toBuffer() // TODO: maybe we can slice this in fromBuffer
 
       tx.ins.forEach((input, vin) => {
         let { hash, index: vout } = input
@@ -36,10 +37,9 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
 
         atomic.put(types.scIndex, { scId, height, txId, vout }, null)
         atomic.put(types.txoIndex, { txId, vout }, { value })
-        this.emitter.emit('script', scId, txId)
+        this.emitter.emit('script', scId, txId, txBuffer)
       })
 
-      let txBuffer = tx.toBuffer() // TODO: maybe we can slice this in fromBuffer
       this.emitter.emit('transaction', txId, txBuffer, blockId)
       atomic.put(types.txIndex, { txId }, { height })
     })
