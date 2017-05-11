@@ -43,7 +43,7 @@ Mempool.prototype.add = function (txId, callback) {
       getOrSetDefault(this.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
       this.statistics.inputs++
 
-      this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer)
+      setTimeout(() => this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer))
     })
 
     tx.outs.forEach(({ script, value }, vout) => {
@@ -53,7 +53,7 @@ Mempool.prototype.add = function (txId, callback) {
       this.txos[`${txId}:${vout}`] = { value }
       this.statistics.outputs++
 
-      this.emitter.emit('script', scId, txId, txBuffer)
+      setTimeout(() => this.emitter.emit('script', scId, txId, txBuffer))
     })
 
     if (!waiting) {
@@ -65,7 +65,7 @@ Mempool.prototype.add = function (txId, callback) {
       }, 30000)
     }
 
-    this.emitter.emit('transaction', txId, txBuffer)
+    setTimeout(() => this.emitter.emit('transaction', txId, txBuffer))
     callback()
   })
 }

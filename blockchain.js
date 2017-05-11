@@ -29,7 +29,7 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
         input.txId = hash.reverse().toString('hex')
 
         atomic.put(types.spentIndex, { txId: input.txId, vout }, { txId, vin })
-        this.emitter.emit('spent', `${input.txId}:${vout}`, txId)
+        setTimeout(() => this.emitter.emit('spent', `${input.txId}:${vout}`, txId))
       })
 
       tx.outs.forEach(({ script, value }, vout) => {
@@ -37,14 +37,14 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
 
         atomic.put(types.scIndex, { scId, height, txId, vout }, null)
         atomic.put(types.txoIndex, { txId, vout }, { value })
-        this.emitter.emit('script', scId, txId, txBuffer)
+        setTimeout(() => this.emitter.emit('script', scId, txId, txBuffer))
       })
 
-      this.emitter.emit('transaction', txId, txBuffer, blockId)
+      setTimeout(() => this.emitter.emit('transaction', txId, txBuffer, blockId))
       atomic.put(types.txIndex, { txId }, { height })
     })
 
-    this.emitter.emit('block', blockId, blockBuffer, height)
+    setTimeout(() => this.emitter.emit('block', blockId, blockBuffer, height))
     debug(`Putting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
     atomic.put(types.tip, {}, blockId)
     atomic.write((err) => {
