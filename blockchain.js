@@ -9,7 +9,7 @@ function Blockchain (emitter, db, rpc) {
   this.rpc = rpc
 }
 
-Blockchain.prototype.connect = function (blockId, _, callback) {
+Blockchain.prototype.connect = function (blockId, height, callback) {
   rpcUtil.block(this.rpc, blockId, (err, block) => {
     if (err) return callback(err)
 
@@ -45,10 +45,11 @@ Blockchain.prototype.connect = function (blockId, _, callback) {
 
       this.connect2ndOrder(block, blockId, height, callback)
     })
-  })
+  }, height === 0)
 }
 
 function box (data) {
+  if (data.length === 0) return { q1: 0, median: 0, q3: 0 }
   let quarter = (data.length / 4) | 0
   let midpoint = (data.length / 2) | 0
 
@@ -193,7 +194,7 @@ Blockchain.prototype.spentFromTxo = function (txo, callback) {
 
 Blockchain.prototype.tip = function (callback) {
   this.db.get(types.tip, {}, (err, tip) => {
-    callback(err, !err && tip.blockId)
+    callback(err, tip && tip.blockId)
   })
 }
 

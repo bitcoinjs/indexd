@@ -45,7 +45,15 @@ function block (rpc, blockId, done, forgiving) {
 
     block.transactions = []
     parallel(block.tx.map((txId) => {
-      return (next) => transaction(rpc, txId, next, forgiving)
+      return (next) => {
+        transaction(rpc, txId, (err, tx) => {
+          if (err) return next(err)
+          if (!tx) return next()
+
+          block.transactions.push(tx)
+          next()
+        }, forgiving)
+      }
     }), (err) => {
       if (err) return done(err)
       delete block.tx
