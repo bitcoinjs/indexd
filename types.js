@@ -12,10 +12,12 @@ let tip = {
     ['prefix', vstruct.Value(vstruct.UInt8, 0x00)]
   ]),
   valueType: {
-    blockId: tfHex64
+    blockId: tfHex64,
+    height: typeforce.UInt32
   },
   value: vstruct([
-    ['blockId', Hex64]
+    ['blockId', Hex64],
+    ['height', vstruct.UInt32LE]
   ])
 }
 
