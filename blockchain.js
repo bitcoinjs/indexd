@@ -49,7 +49,7 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
 
       this.connect2ndOrder(blockId, block, callback)
     })
-  }, height === 0)
+  })
 }
 
 function box (data) {
