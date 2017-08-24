@@ -14,9 +14,9 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
     if (err) return callback(err)
 
     let atomic = this.db.atomic()
-    let { height } = block
+    let { height, transactions } = block
 
-    block.transactions.forEach((tx) => {
+    transactions.forEach((tx) => {
       let { txId, txBuffer, ins, outs } = tx
 
       ins.forEach((input, vin) => {
@@ -37,13 +37,17 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
       atomic.put(types.txIndex, { txId }, { height })
     })
 
-    setTimeout(() => this.emitter.emit('block', blockId, null, height))
-    debug(`Putting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
+    setTimeout(() => rpcUtil.header(this.rpc, blockId, (err, blockBuffer) => {
+      if (err) return
+      this.emitter.emit('block', blockId, blockBuffer, height)
+    }))
+
+    debug(`Putting ${blockId} @ ${height} - ${transactions.length} transactions`)
     atomic.put(types.tip, {}, { blockId, height })
     atomic.write((err) => {
       if (err) return callback(err)
 
-      this.connect2ndOrder(block, blockId, height, callback)
+      this.connect2ndOrder(blockId, block, callback)
     })
   }, height === 0)
 }
@@ -60,11 +64,12 @@ function box (data) {
   }
 }
 
-Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callback) {
+Blockchain.prototype.connect2ndOrder = function (blockId, block, callback) {
   let feeRates = []
   let tasks = []
+  let { height, transactions } = block
 
-  block.transactions.forEach(({ ins, outs, vsize }) => {
+  transactions.forEach(({ ins, outs, vsize }) => {
     let inAccum = 0
     let outAccum = 0
     let subTasks = []
@@ -76,11 +81,11 @@ Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callbac
         return
       }
 
-      let { txId, vout } = input
+      let { prevTxId, vout } = input
       subTasks.push((next) => {
-        this.db.get(types.txoIndex, { txId, vout }, (err, output) => {
+        this.db.get(types.txoIndex, { txId: prevTxId, vout }, (err, output) => {
           if (err) return next(err)
-          if (!output) return next(new Error(`Missing ${txId}:${vout}`))
+          if (!output) return next(new Error(`Missing ${prevTxId}:${vout}`))
 
           inAccum += output.value
           next()
@@ -126,9 +131,9 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
     if (err) return callback(err)
 
     let atomic = this.db.atomic()
-    let { height } = block
+    let { height, transactions } = block
 
-    block.transactions.forEach(({ txId, ins, outs }) => {
+    transactions.forEach(({ txId, ins, outs }) => {
       ins.forEach((input) => {
         if (input.coinbase) return
         let { prevTxId, vout } = input
@@ -144,7 +149,7 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
       atomic.del(types.txIndex, { txId }, { height })
     })
 
-    debug(`Deleting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
+    debug(`Deleting ${blockId} @ ${height} - ${transactions.length} transactions`)
     atomic.put(types.tip, {}, { blockId: block.previousblockhash, height })
     atomic.write(callback)
   })

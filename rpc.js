@@ -62,4 +62,12 @@ function block (rpc, blockId, done, forgiving) {
   })
 }
 
-module.exports = { block, transaction }
+function header (rpc, blockId, done) {
+  rpc('getblockheader', [blockId, false], (err, hex) => {
+    if (err) return done(err)
+
+    done(null, Buffer.from(hex, 'hex'))
+  })
+}
+
+module.exports = { block, header, transaction }
