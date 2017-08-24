@@ -1,7 +1,7 @@
-let bitcoin = require('bitcoinjs-lib')
 let debug = require('debug')('blockchain')
 let parallel = require('run-parallel')
 let types = require('./types')
+let rpcUtil = require('./rpc')
 
 function Blockchain (emitter, db, rpc) {
   this.emitter = emitter
@@ -9,32 +9,25 @@ function Blockchain (emitter, db, rpc) {
   this.rpc = rpc
 }
 
-Blockchain.prototype.connect = function (blockId, height, callback) {
-  this.rpc('getblock', [blockId, false], (err, blockHex) => {
+Blockchain.prototype.connect = function (blockId, _, callback) {
+  rpcUtil.block(this.rpc, blockId, (err, block) => {
     if (err) return callback(err)
 
-    let blockBuffer = Buffer.from(blockHex, 'hex')
-    let block = bitcoin.Block.fromBuffer(blockBuffer)
     let atomic = this.db.atomic()
+    let { height } = block
 
     block.transactions.forEach((tx) => {
-      let txId = tx.getId()
-      let txBuffer = tx.toBuffer() // TODO: maybe we can slice this in fromBuffer
+      let { txId, txBuffer, ins, outs } = tx
 
-      tx.ins.forEach((input, vin) => {
-        let { hash, index: vout } = input
-        if (bitcoin.Transaction.isCoinbaseHash(hash)) return
+      ins.forEach((input, vin) => {
+        if (input.coinbase) return
 
-        // NOTE: destructively mutates hash
-        input.txId = hash.reverse().toString('hex')
-
-        atomic.put(types.spentIndex, { txId: input.txId, vout }, { txId, vin })
-        setTimeout(() => this.emitter.emit('spent', `${input.txId}:${vout}`, txId))
+        let { prevTxId, vout } = input
+        atomic.put(types.spentIndex, { txId: prevTxId, vout }, { txId, vin })
+        setTimeout(() => this.emitter.emit('spent', `${prevTxId}:${vout}`, txId))
       })
 
-      tx.outs.forEach(({ script, value }, vout) => {
-        let scId = bitcoin.crypto.sha256(script).toString('hex')
-
+      outs.forEach(({ scId, value, vout }) => {
         atomic.put(types.scIndex, { scId, height, txId, vout }, null)
         atomic.put(types.txoIndex, { txId, vout }, { value })
         setTimeout(() => this.emitter.emit('script', scId, txId, txBuffer))
@@ -44,9 +37,9 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
       atomic.put(types.txIndex, { txId }, { height })
     })
 
-    setTimeout(() => this.emitter.emit('block', blockId, blockBuffer, height))
+    setTimeout(() => this.emitter.emit('block', blockId, null, height))
     debug(`Putting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
-    atomic.put(types.tip, {}, blockId)
+    atomic.put(types.tip, {}, { blockId, height })
     atomic.write((err) => {
       if (err) return callback(err)
 
@@ -70,19 +63,19 @@ Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callbac
   let feeRates = []
   let tasks = []
 
-  block.transactions.forEach((tx) => {
+  block.transactions.forEach(({ ins, outs, vsize }) => {
     let inAccum = 0
     let outAccum = 0
     let subTasks = []
     let coinbase = false
 
-    tx.ins.forEach(({ txId, hash, index: vout }, vin) => {
-      if (bitcoin.Transaction.isCoinbaseHash(hash)) {
+    ins.forEach((input, vin) => {
+      if (input.coinbase) {
         coinbase = true
         return
       }
-      if (coinbase) return
 
+      let { txId, vout } = input
       subTasks.push((next) => {
         this.db.get(types.txoIndex, { txId, vout }, (err, output) => {
           if (err) return next(err)
@@ -94,7 +87,7 @@ Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callbac
       })
     })
 
-    tx.outs.forEach(({ value }, vout) => {
+    outs.forEach(({ value }, vout) => {
       outAccum += value
     })
 
@@ -107,8 +100,7 @@ Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callbac
       parallel(subTasks, (err) => {
         if (err) return next(err)
         let fee = inAccum - outAccum
-        let size = tx.byteLength()
-        let feeRate = Math.floor(fee / size)
+        let feeRate = Math.floor(fee / vsize)
 
         feeRates.push(feeRate)
         next()
@@ -123,38 +115,27 @@ Blockchain.prototype.connect2ndOrder = function (block, blockId, height, callbac
     let atomic = this.db.atomic()
     feeRates = feeRates.sort((a, b) => a - b)
 
-    atomic.put(types.feeIndex, { height }, { fees: box(feeRates), size: block.byteLength() })
+    atomic.put(types.feeIndex, { height }, { fees: box(feeRates), size: block.size })
     atomic.write(callback)
   })
 }
 
 Blockchain.prototype.disconnect = function (blockId, callback) {
-  parallel({
-    blockHeader: (f) => this.rpc('getblockheader', [blockId, true], f),
-    blockHex: (f) => this.rpc('getblock', [blockId, false], f)
-  }, (err, result) => {
+  rpcUtil.block(this.rpc, blockId, (err, block) => {
     if (err) return callback(err)
 
-    let { height } = result.blockHeader
-    let blockBuffer = Buffer.from(result.blockHex, 'hex')
-    let block = bitcoin.Block.fromBuffer(blockBuffer)
     let atomic = this.db.atomic()
+    let { height } = block
 
-    block.transactions.forEach((tx) => {
-      let txId = tx.getId()
-
-      tx.ins.forEach(({ hash, index: vout }) => {
-        if (bitcoin.Transaction.isCoinbaseHash(hash)) return
-
-        // NOTE: destructively mutates hash
-        let prevTxId = hash.reverse().toString('hex')
+    block.transactions.forEach(({ txId, ins, outs }) => {
+      ins.forEach((input) => {
+        if (input.coinbase) return
+        let { prevTxId, vout } = input
 
         atomic.del(types.spentIndex, { txId: prevTxId, vout })
       })
 
-      tx.outs.forEach(({ script }, vout) => {
-        let scId = bitcoin.crypto.sha256(script).toString('hex')
-
+      outs.forEach(({ scId }, vout) => {
         atomic.del(types.scIndex, { scId, height, txId, vout })
         atomic.del(types.txoIndex, { txId, vout })
       })
@@ -162,10 +143,8 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
       atomic.del(types.txIndex, { txId }, { height })
     })
 
-    // NOTE: destructively mutates prevHash
-    let previousBlockId = block.prevHash.reverse().toString('hex')
     debug(`Deleting ${blockId} @ ${height} - ${block.transactions.length} transactions`)
-    atomic.put(types.tip, {}, previousBlockId)
+    atomic.put(types.tip, {}, { blockId: block.previousblockhash, height })
     atomic.write(callback)
   })
 }
@@ -181,21 +160,17 @@ Blockchain.prototype.blockIdByTransaction = function (txId, callback) {
 }
 
 Blockchain.prototype.fees = function (n, callback) {
-  this.db.get(types.tip, {}, (err, tipId) => {
+  this.db.get(types.tip, {}, (err, result) => {
     if (err) return callback(err)
 
-    this.rpc('getblockheader', [tipId, true], (err, header) => {
-      if (err) return callback(err)
+    let maxHeight = result.height
+    let fresult = []
 
-      let { height: tipHeight } = header
-      let result = []
-
-      this.db.iterator(types.feeIndex, {
-        gte: { height: tipHeight - n }
-      }, ({ height }, { fees, size }) => {
-        result.push({ height, fees, size })
-      }, (err) => callback(err, result))
-    })
+    this.db.iterator(types.feeIndex, {
+      gte: { height: maxHeight - n }
+    }, ({ height }, { fees, size }) => {
+      fresult.push({ height, fees, size })
+    }, (err) => callback(err, fresult))
   })
 }
 
@@ -217,7 +192,9 @@ Blockchain.prototype.spentFromTxo = function (txo, callback) {
 }
 
 Blockchain.prototype.tip = function (callback) {
-  this.db.get(types.tip, {}, callback)
+  this.db.get(types.tip, {}, (err, tip) => {
+    callback(err, !err && tip.blockId)
+  })
 }
 
 Blockchain.prototype.txosByScript = function (scId, height, callback) {

@@ -1,11 +1,8 @@
 let typeforce = require('typeforce')
-let vstruct = require('varstruct')
+let tfHex64 = typeforce.HexN(64)
 
+let vstruct = require('varstruct')
 let Hex64 = vstruct.String(32, 'hex')
-let Hex64t = typeforce.HexN(64)
-let blockId = Hex64
-let txId = Hex64
-let scId = Hex64
 let vout = vstruct.UInt32LE
 let satoshis = vstruct.UInt64LE
 
@@ -14,22 +11,26 @@ let tip = {
   key: vstruct([
     ['prefix', vstruct.Value(vstruct.UInt8, 0x00)]
   ]),
-  valueType: Hex64t,
-  value: blockId
+  valueType: {
+    blockId: tfHex64
+  },
+  value: vstruct([
+    ['blockId', Hex64]
+  ])
 }
 
 let scIndex = {
   keyType: typeforce.compile({
-    scId: Hex64t,
+    scId: tfHex64,
     height: typeforce.UInt32,
-    txId: Hex64t,
+    txId: tfHex64,
     vout: typeforce.UInt32
   }),
   key: vstruct([
     ['prefix', vstruct.Value(vstruct.UInt8, 0x01)],
-    ['scId', scId],
+    ['scId', Hex64],
     ['height', vstruct.UInt32BE], // big-endian for lexicographical sort
-    ['txId', txId],
+    ['txId', Hex64],
     ['vout', vout]
   ]),
   valueType: typeforce.Null,
@@ -38,31 +39,31 @@ let scIndex = {
 
 let spentIndex = {
   keyType: typeforce.compile({
-    txId: Hex64t,
+    txId: tfHex64,
     vout: typeforce.UInt32
   }),
   key: vstruct([
     ['prefix', vstruct.Value(vstruct.UInt8, 0x02)],
-    ['txId', txId],
+    ['txId', Hex64],
     ['vout', vout]
   ]),
   valueType: typeforce.compile({
-    txId: Hex64t,
+    txId: tfHex64,
     vin: typeforce.UInt32
   }),
   value: vstruct([
-    ['txId', txId],
+    ['txId', Hex64],
     ['vin', vout]
   ])
 }
 
 let txIndex = {
   keyType: typeforce.compile({
-    txId: Hex64t
+    txId: tfHex64
   }),
   key: vstruct([
     ['prefix', vstruct.Value(vstruct.UInt8, 0x03)],
-    ['txId', txId]
+    ['txId', Hex64]
   ]),
   valueType: typeforce.compile({
     height: typeforce.UInt32
@@ -74,12 +75,12 @@ let txIndex = {
 
 let txoIndex = {
   keyType: typeforce.compile({
-    txId: Hex64t,
+    txId: tfHex64,
     vout: typeforce.UInt32
   }),
   key: vstruct([
     ['prefix', vstruct.Value(vstruct.UInt8, 0x04)],
-    ['txId', txId],
+    ['txId', Hex64],
     ['vout', vout]
   ]),
   valueType: typeforce.compile({

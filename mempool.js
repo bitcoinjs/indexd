@@ -1,6 +1,6 @@
-let bitcoin = require('bitcoinjs-lib')
 let debug = require('debug')('mempool')
 let parallel = require('run-parallel')
+let rpcUtil = require('./rpc')
 
 function Mempool (emitter, rpc) {
   this.emitter = emitter
@@ -25,30 +25,27 @@ function getOrSetDefault (object, key, defaultValue) {
 
 let waiting
 Mempool.prototype.add = function (txId, callback) {
-  this.rpc('getrawtransaction', [txId, 0], (err, txHex) => {
-    if (err && /No such mempool or blockchain transaction/.test(err)) {
+  rpcUtil.transaction(this.rpc, txId, (err, tx) => {
+    if (err) return callback(err)
+    if (!tx) {
       debug(`${txId} dropped`)
       return callback()
     }
-    if (err) return callback(err)
 
-    let txBuffer = Buffer.from(txHex, 'hex')
-    let tx = bitcoin.Transaction.fromBuffer(txBuffer)
+    let { txBuffer, ins, outs } = tx
 
     this.statistics.transactions++
-    tx.ins.forEach(({ hash, index: vout }, vin) => {
-      if (bitcoin.Transaction.isCoinbaseHash(hash)) return
+    ins.forEach((input, vin) => {
+      if (input.coinbase) return
+      let { prevTxId, vout } = input
 
-      let prevTxId = hash.reverse().toString('hex')
       getOrSetDefault(this.spents, `${prevTxId}:${vout}`, []).push({ txId, vin })
       this.statistics.inputs++
 
       setTimeout(() => this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer))
     })
 
-    tx.outs.forEach(({ script, value }, vout) => {
-      let scId = bitcoin.crypto.sha256(script).toString('hex')
-
+    outs.forEach(({ scId, value }, vout) => {
       getOrSetDefault(this.scripts, scId, []).push({ txId, vout })
       this.txos[`${txId}:${vout}`] = { value }
       this.statistics.outputs++
@@ -67,7 +64,7 @@ Mempool.prototype.add = function (txId, callback) {
 
     setTimeout(() => this.emitter.emit('transaction', txId, txBuffer))
     callback()
-  })
+  }, true)
 }
 
 Mempool.prototype.reset = function (callback) {
