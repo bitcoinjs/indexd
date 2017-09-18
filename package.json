@@ -4,7 +4,6 @@
   "description": "",
   "main": "index.js",
   "dependencies": {
-    "bitcoinjs-lib": "^3.0.0",
     "debug": "^2.6.0",
     "run-parallel": "^1.1.6",
     "typeforce": "^1.10.6",
