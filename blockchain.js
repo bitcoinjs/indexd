@@ -203,21 +203,6 @@ Blockchain.prototype.tip = function (callback) {
   })
 }
 
-Blockchain.prototype.txosByScript = function (scId, height, callback) {
-  let resultMap = {}
-
-  this.db.iterator(types.scIndex, {
-    gte: { scId, height, txId: ZERO64, vout: 0 },
-    lt: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 }
-  }, ({ txId, vout, height }) => {
-    resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
-  }, (err) => callback(err, resultMap))
-}
-
-Blockchain.prototype.txoByTxo = function (txId, vout, callback) {
-  this.db.get(types.txoIndex, { txId, vout }, callback)
-}
-
 Blockchain.prototype.transactionsByScript = function (scId, height, callback) {
   this.txosByScript(scId, height, (err, txosMap) => {
     if (err) return callback(err)
@@ -249,6 +234,21 @@ Blockchain.prototype.transactionsByScript = function (scId, height, callback) {
       callback(null, txIds)
     })
   })
+}
+
+Blockchain.prototype.txosByScript = function (scId, height, callback) {
+  let resultMap = {}
+
+  this.db.iterator(types.scIndex, {
+    gte: { scId, height, txId: ZERO64, vout: 0 },
+    lt: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 }
+  }, ({ txId, vout, height }) => {
+    resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
+  }, (err) => callback(err, resultMap))
+}
+
+Blockchain.prototype.txoByTxo = function (txId, vout, callback) {
+  this.db.get(types.txoIndex, { txId, vout }, callback)
 }
 
 module.exports = Blockchain

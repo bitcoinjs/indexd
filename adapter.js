@@ -30,6 +30,8 @@ Adapter.prototype.fees = function (n, callback) {
   this.blockchain.fees(n, callback)
 }
 
+// returns whether (true/false) the script id (SHA256(script)) has even been seen
+// TODO: s/knownScript/seenScript
 Adapter.prototype.knownScript = function (scId, callback) {
   this.blockchain.knownScript(scId, (err, result) => {
     if (err) return callback(err)
@@ -37,33 +39,7 @@ Adapter.prototype.knownScript = function (scId, callback) {
   })
 }
 
-Adapter.prototype.tip = function (callback) {
-  this.blockchain.tip(callback)
-}
-
-Adapter.prototype.txosByScript = function (scId, height, callback) {
-  let resultMap = {}
-
-  this.blockchain.txosByScript(scId, height, (err, txosMap) => {
-    if (err) return callback(err)
-
-    Object.assign(resultMap, this.mempool.txosByScript(scId))
-    callback(null, resultMap)
-  })
-}
-
-Adapter.prototype.txoByTxo = function (txId, vout, callback) {
-  this.blockchain.txoByTxo(txId, vout, (err, txo) => {
-    if (err) return callback(err)
-
-    // if in blockchain, ignore the mempool
-    if (txo) return callback(null, txo)
-
-    // otherwise, could be multiple spents in the mempool
-    callback(null, this.mempool.txoByTxo(txId, vout))
-  })
-}
-
+// returns array input that spends {txo}, array length is guaranteed to be 1 if confirmed [on the blockchain]
 Adapter.prototype.spentsFromTxo = function (txo, callback) {
   this.blockchain.spentFromTxo(txo, (err, spent) => {
     if (err) return callback(err)
@@ -76,12 +52,46 @@ Adapter.prototype.spentsFromTxo = function (txo, callback) {
   })
 }
 
+// returns blockchain chain tip id
+Adapter.prototype.tip = function (callback) {
+  this.blockchain.tip(callback)
+}
+
+// returns mapping of transactions associated with script id (SHA256(script))
+// minimum height can be provided if many transaction associations exist
 Adapter.prototype.transactionsByScript = function (scId, height, callback) {
   this.blockchain.transactionsByScript(scId, height, (err, txIds) => {
     if (err) return callback(err)
 
     Object.assign(txIds, this.mempool.transactionsByScript(scId))
     callback(null, txIds)
+  })
+}
+
+// returns a mapping of txos (`txid:vout`) for script id, mapping guarantees no duplicates
+// the format `txid:vout`: { .., scId }, supports streamline merging with other queries
+Adapter.prototype.txosByScript = function (scId, height, callback) {
+  let resultMap = {}
+
+  this.blockchain.txosByScript(scId, height, (err, txosMap) => {
+    if (err) return callback(err)
+
+    Object.assign(resultMap, txosMap, this.mempool.txosByScript(scId))
+    callback(null, resultMap)
+  })
+}
+
+// returns txo information ({ txId, vout, value }) for the provided txo
+// TODO: see #15
+Adapter.prototype.txoByTxo = function (txId, vout, callback) {
+  this.blockchain.txoByTxo(txId, vout, (err, txo) => {
+    if (err) return callback(err)
+
+    // if in blockchain, ignore the mempool
+    if (txo) return callback(null, txo)
+
+    // otherwise, could be multiple spends in the mempool
+    callback(null, this.mempool.txoByTxo(txId, vout))
   })
 }
 
