@@ -103,7 +103,7 @@ Mempool.prototype.spentsFromTxo = function ({ txId, vout }) {
 }
 
 Mempool.prototype.transactionIdsByScriptId = function (scId) {
-  let txosMap = this.txosByScript(scId)
+  let txosMap = this.txosByScriptId(scId)
   let spentsMap = {}
 
   for (let txoKey in txosMap) {
