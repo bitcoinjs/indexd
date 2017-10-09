@@ -156,7 +156,7 @@ Blockchain.prototype.disconnect = function (blockId, callback) {
 }
 
 // QUERIES
-Blockchain.prototype.blockIdByTransaction = function (txId, callback) {
+Blockchain.prototype.blockIdByTransactionId = function (txId, callback) {
   this.db.get(types.txIndex, { txId }, (err, row) => {
     if (err) return callback(err)
     if (!row) return callback()
@@ -181,7 +181,7 @@ Blockchain.prototype.fees = function (n, callback) {
 }
 
 let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
-Blockchain.prototype.knownScript = function (scId, callback) {
+Blockchain.prototype.seenScriptId = function (scId, callback) {
   let result = false
 
   this.db.iterator(types.scIndex, {
@@ -203,7 +203,7 @@ Blockchain.prototype.tip = function (callback) {
   })
 }
 
-Blockchain.prototype.transactionsByScript = function (scId, height, callback) {
+Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback) {
   this.txosByScript(scId, height, (err, txosMap) => {
     if (err) return callback(err)
 
@@ -236,7 +236,7 @@ Blockchain.prototype.transactionsByScript = function (scId, height, callback) {
   })
 }
 
-Blockchain.prototype.txosByScript = function (scId, height, callback) {
+Blockchain.prototype.txosByScriptId = function (scId, height, callback) {
   let resultMap = {}
 
   this.db.iterator(types.scIndex, {

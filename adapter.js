@@ -21,9 +21,9 @@ Adapter.prototype.disconnect = function (blockId, callback) {
   this.blockchain.disconnect(blockId, callback)
 }
 
-// queries
-Adapter.prototype.blockIdByTransaction = function (txId, callback) {
-  this.blockchain.blockIdByTransaction(txId, callback)
+// QUERIES
+Adapter.prototype.blockIdByTransactionId = function (txId, callback) {
+  this.blockchain.blockIdByTransactionId(txId, callback)
 }
 
 Adapter.prototype.fees = function (n, callback) {
@@ -31,9 +31,8 @@ Adapter.prototype.fees = function (n, callback) {
 }
 
 // returns whether (true/false) the script id (SHA256(script)) has even been seen
-// TODO: s/knownScript/seenScript
-Adapter.prototype.knownScript = function (scId, callback) {
-  this.blockchain.knownScript(scId, (err, result) => {
+Adapter.prototype.seenScriptId = function (scId, callback) {
+  this.blockchain.seenScriptId(scId, (err, result) => {
     if (err) return callback(err)
     callback(null, result || this.mempool.knownScript(scId))
   })
@@ -59,8 +58,8 @@ Adapter.prototype.tip = function (callback) {
 
 // returns mapping of transactions associated with script id (SHA256(script))
 // minimum height can be provided if many transaction associations exist
-Adapter.prototype.transactionsByScript = function (scId, height, callback) {
-  this.blockchain.transactionsByScript(scId, height, (err, txIds) => {
+Adapter.prototype.transactionIdsByScriptId = function (scId, height, callback) {
+  this.blockchain.transactionIdsByScriptId(scId, height, (err, txIds) => {
     if (err) return callback(err)
 
     Object.assign(txIds, this.mempool.transactionsByScript(scId))
@@ -70,7 +69,7 @@ Adapter.prototype.transactionsByScript = function (scId, height, callback) {
 
 // returns a mapping of txos (`txid:vout`) for script id, mapping guarantees no duplicates
 // the format `txid:vout`: { .., scId }, supports streamline merging with other queries
-Adapter.prototype.txosByScript = function (scId, height, callback) {
+Adapter.prototype.txosByScriptId = function (scId, height, callback) {
   let resultMap = {}
 
   this.blockchain.txosByScript(scId, height, (err, txosMap) => {

@@ -94,7 +94,7 @@ Mempool.prototype.reset = function (callback) {
 }
 
 // QUERIES
-Mempool.prototype.knownScript = function (scId) {
+Mempool.prototype.seenScriptId = function (scId) {
   return Boolean(this.scripts[scId])
 }
 
@@ -102,7 +102,7 @@ Mempool.prototype.spentsFromTxo = function ({ txId, vout }) {
   return this.spents[`${txId}:${vout}`] || []
 }
 
-Mempool.prototype.transactionsByScript = function (scId) {
+Mempool.prototype.transactionIdsByScriptId = function (scId) {
   let txosMap = this.txosByScript(scId)
   let spentsMap = {}
 
@@ -130,7 +130,7 @@ Mempool.prototype.transactionsByScript = function (scId) {
   return txIds
 }
 
-Mempool.prototype.txosByScript = function (scId) {
+Mempool.prototype.txosByScriptId = function (scId) {
   let txos = this.scripts[scId]
   if (!txos) return {}
 
