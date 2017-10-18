@@ -204,7 +204,7 @@ Blockchain.prototype.tip = function (callback) {
 }
 
 Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback) {
-  this.txosByScript(scId, height, (err, txosMap) => {
+  this.txosByScriptId(scId, height, (err, txosMap) => {
     if (err) return callback(err)
 
     let taskMap = {}
