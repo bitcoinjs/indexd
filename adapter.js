@@ -38,7 +38,7 @@ Adapter.prototype.seenScriptId = function (scId, callback) {
   })
 }
 
-// returns array input that spends {txo}, array length is guaranteed to be 1 if confirmed [on the blockchain]
+// returns list of inputs that spends {txo}, array length is guaranteed to be 1 if confirmed [on the blockchain]
 Adapter.prototype.spentsFromTxo = function (txo, callback) {
   this.blockchain.spentFromTxo(txo, (err, spent) => {
     if (err) return callback(err)
@@ -56,7 +56,7 @@ Adapter.prototype.tip = function (callback) {
   this.blockchain.tip(callback)
 }
 
-// returns mapping of transactions associated with script id (SHA256(script))
+// returns set of transactions associated with script id (SHA256(script))
 // minimum height can be provided if many transaction associations exist
 Adapter.prototype.transactionIdsByScriptId = function (scId, height, callback) {
   this.blockchain.transactionIdsByScriptId(scId, height, (err, txIds) => {
