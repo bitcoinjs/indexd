@@ -80,7 +80,7 @@ Adapter.prototype.txosByScriptId = function (scId, height, callback) {
   })
 }
 
-// returns txo information ({ txId, vout, value }) for the provided txo
+// returns extra txo information ({ txId, vout, value }) for the provided txo
 // TODO: see #15
 Adapter.prototype.txoByTxo = function (txId, vout, callback) {
   this.blockchain.txoByTxo(txId, vout, (err, txo) => {
@@ -89,7 +89,6 @@ Adapter.prototype.txoByTxo = function (txId, vout, callback) {
     // if in blockchain, ignore the mempool
     if (txo) return callback(null, txo)
 
-    // otherwise, could be multiple spends in the mempool
     callback(null, this.mempool.txoByTxo(txId, vout))
   })
 }
