@@ -1,5 +1,6 @@
 let dbwrapper = require('./dbwrapper')
 let { EventEmitter } = require('events')
+let parallel = require('run-parallel')
 
 let Blockchain = require('./blockchain')
 let Mempool = require('./mempool')
@@ -90,6 +91,33 @@ Adapter.prototype.txoByTxo = function (txId, vout, callback) {
     if (txo) return callback(null, txo)
 
     callback(null, this.mempool.txoByTxo(txId, vout))
+  })
+}
+
+// returns a list of unspent txos
+Adapter.prototype.utxosByScriptId = function (scId, height, callback) {
+  this.txosByScriptId(scId, height, (err, txosMap) => {
+    if (err) return callback(err)
+
+    let utxos = {}
+    let tasks = {}
+    for (let txoKey in txosMap) {
+      let txo = txosMap[txoKey]
+
+      tasks[txoKey] = (next) => this.spentsFromTxo(txo, (err, spents) => {
+        if (err) return next(err)
+        if (spents.length > 0) return next()
+
+        this.txoByTxo(txo.txId, txo.vout, (err, txoExtra) => {
+          if (err) return next(err)
+
+          utxos[txoKey] = Object.assign(txo, txoExtra)
+          next()
+        })
+      })
+    }
+
+    parallel(tasks, (err) => callback(err, utxos))
   })
 }
 
