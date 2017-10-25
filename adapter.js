@@ -73,10 +73,10 @@ Adapter.prototype.transactionIdsByScriptId = function (scId, height, callback) {
 Adapter.prototype.txosByScriptId = function (scId, height, callback) {
   let resultMap = {}
 
-  this.blockchain.txosByScript(scId, height, (err, txosMap) => {
+  this.blockchain.txosByScriptId(scId, height, (err, txosMap) => {
     if (err) return callback(err)
 
-    Object.assign(resultMap, txosMap, this.mempool.txosByScript(scId))
+    Object.assign(resultMap, txosMap, this.mempool.txosByScriptId(scId))
     callback(null, resultMap)
   })
 }
