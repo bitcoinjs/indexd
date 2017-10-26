@@ -17,7 +17,7 @@ Uses [`yajrpc`](https://github.com/dcousens/yajrpc) for the bitcoind RPC;
 [`leveldown`](https://github.com/level/leveldown) for the database;
 and [`zmq`](https://www.npmjs.com/package/zmq) for bitcoind notifications.
 
-See [`example/`]https://github.com/bitcoinjs/indexd/tree/master/example) for a functioning express HTTP API example.
+See [`example/`](https://github.com/bitcoinjs/indexd/tree/master/example) for a functioning express HTTP API example.
 
 
 ## License [ISC](LICENSE)
