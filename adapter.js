@@ -57,6 +57,11 @@ Adapter.prototype.tip = function (callback) {
   this.blockchain.tip(callback)
 }
 
+// returns blockchain chain tip height
+Adapter.prototype.tipHeight = function (callback) {
+  this.blockchain.tipHeight(callback)
+}
+
 // returns set of transactions associated with script id (SHA256(script))
 // minimum height can be provided if many transaction associations exist
 Adapter.prototype.transactionIdsByScriptId = function (scId, height, callback) {
