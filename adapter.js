@@ -63,7 +63,7 @@ Adapter.prototype.transactionIdsByScriptId = function (scId, height, callback) {
   this.blockchain.transactionIdsByScriptId(scId, height, (err, txIds) => {
     if (err) return callback(err)
 
-    Object.assign(txIds, this.mempool.transactionsByScript(scId))
+    Object.assign(txIds, this.mempool.transactionIdsByScriptId(scId))
     callback(null, txIds)
   })
 }
