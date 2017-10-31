@@ -1,4 +1,4 @@
-let debug = require('debug')('mempool')
+let debug = require('./debug')('indexd:mempool')
 let parallel = require('run-parallel')
 let rpcUtil = require('./rpc')
 

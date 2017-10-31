@@ -1,4 +1,4 @@
-let debug = require('debug')('blockchain')
+let debug = require('./debug')('indexd:blockchain')
 let parallel = require('run-parallel')
 let types = require('./types')
 let rpcUtil = require('./rpc')
