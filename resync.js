@@ -1,4 +1,4 @@
-let debug = require('debug')('resync')
+let debug = require('./debug')('indexd:resync')
 let parallel = require('run-parallel')
 
 // recursively calls connectBlock(id) until `bitcoind[id].next` is falsy
