@@ -45,7 +45,7 @@ function block (rpc, blockId, done) {
 
     block.transactions = block.tx.map(t => augment(t))
     delete block.tx
-    done(err, block)
+    done(null, block)
   })
 }
 
@@ -57,4 +57,32 @@ function header (rpc, blockId, done) {
   })
 }
 
-module.exports = { block, header, transaction }
+function headerJSON (rpc, blockId, done) {
+  rpc('getblockheader', [blockId, true], (err, hex) => {
+    if (err) return done(err)
+
+    done(null, Buffer.from(hex, 'hex'))
+  })
+}
+
+function mempool (rpc, done) {
+  rpc('getrawmempool', [false], done)
+}
+
+function blockIdAtHeight (rpc, height, done) {
+  rpc('getblockhash', [height], done)
+}
+
+function tip (rpc, done) {
+  rpc('getbestblockhash', [], done)
+}
+
+module.exports = {
+  block,
+  blockIdAtHeight,
+  header,
+  headerJSON,
+  mempool,
+  tip,
+  transaction
+}

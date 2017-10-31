@@ -161,7 +161,7 @@ Blockchain.prototype.blockIdByTransactionId = function (txId, callback) {
     if (err) return callback(err)
     if (!row) return callback()
 
-    this.rpc('getblockhash', [row.height], callback)
+    rpcUtil.blockIdAtHeight(this.rpc, row.height, callback)
   })
 }
 

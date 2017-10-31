@@ -1,11 +1,12 @@
 let debug = require('./debug')('indexd:resync')
 let parallel = require('run-parallel')
+let rpcUtil = require('./rpc')
 
 // recursively calls connectBlock(id) until `bitcoind[id].next` is falsy
 function connectBlock (rpc, local, id, height, callback) {
   debug(`Connecting ${id} @ ${height}`)
 
-  rpc('getblockheader', [id], (err, header) => {
+  rpcUtil.headerJSON(rpc, id, (err, header) => {
     if (err) return callback(err)
     if (header.height !== height) return callback(new Error('Height mismatch'))
 
@@ -36,7 +37,7 @@ module.exports = function resync (rpc, local, callback) {
   debug('fetching bitcoind/local tips')
 
   parallel({
-    bitcoind: (f) => rpc('getbestblockhash', [], f),
+    bitcoind: (f) => rpcUtil.tip(rpc, f),
     local: (f) => local.tip(f)
   }, (err, tips) => {
     if (err) return callback(err)
@@ -44,7 +45,7 @@ module.exports = function resync (rpc, local, callback) {
     // Step 0, genesis?
     if (!tips.local) {
       debug('genesis')
-      return rpc('getblockhash', [0], (err, genesisId) => {
+      return rpcUtil.blockIdAtHeight(rpc, 0, (err, genesisId) => {
         if (err) return callback(err)
 
         connectBlock(rpc, local, genesisId, 0, callback)
@@ -56,7 +57,7 @@ module.exports = function resync (rpc, local, callback) {
     if (tips.bitcoind === tips.local) return callback()
 
     // else, Step 2, is local behind? [bitcoind has local tip]
-    rpc('getblockheader', [tips.local], (err, common) => {
+    rpcUtil.headerJSON(tips.local, (err, common) => {
       // not in bitcoind chain? [forked]
       if (
         (err && err.message === 'Block not found') ||
