@@ -1,4 +1,14 @@
 let crypto = require('crypto')
+let debug = require('./debug')('indexd:rpc')
+
+function rpcd (rpc, method, params, done) {
+  rpc(method, params, (err, result) => {
+    if (err) debug(method, params, err)
+    if (err) return done(err)
+
+    done(null, err)
+  })
+}
 
 function sha256 (hex) {
   return crypto.createHash('sha256')
@@ -28,19 +38,8 @@ function augment (tx) {
   return tx
 }
 
-function transaction (rpc, txId, next, forgiving) {
-  rpc('getrawtransaction', [txId, true], (err, tx) => {
-    if (err) {
-      if (forgiving && /No such mempool or blockchain transaction/.test(err)) return next()
-      return next(err)
-    }
-
-    next(null, augment(tx))
-  })
-}
-
 function block (rpc, blockId, done) {
-  rpc('getblock', [blockId, 2], (err, block) => {
+  rpcd(rpc, 'getblock', [blockId, 2], (err, block) => {
     if (err) return done(err)
 
     block.transactions = block.tx.map(t => augment(t))
@@ -49,8 +48,12 @@ function block (rpc, blockId, done) {
   })
 }
 
+function blockIdAtHeight (rpc, height, done) {
+  rpcd(rpc, 'getblockhash', [height], done)
+}
+
 function header (rpc, blockId, done) {
-  rpc('getblockheader', [blockId, false], (err, hex) => {
+  rpcd(rpc, 'getblockheader', [blockId, false], (err, hex) => {
     if (err) return done(err)
 
     done(null, Buffer.from(hex, 'hex'))
@@ -58,7 +61,7 @@ function header (rpc, blockId, done) {
 }
 
 function headerJSON (rpc, blockId, done) {
-  rpc('getblockheader', [blockId, true], (err, hex) => {
+  rpcd(rpc, 'getblockheader', [blockId, true], (err, hex) => {
     if (err) return done(err)
 
     done(null, Buffer.from(hex, 'hex'))
@@ -66,15 +69,22 @@ function headerJSON (rpc, blockId, done) {
 }
 
 function mempool (rpc, done) {
-  rpc('getrawmempool', [false], done)
-}
-
-function blockIdAtHeight (rpc, height, done) {
-  rpc('getblockhash', [height], done)
+  rpcd(rpc, 'getrawmempool', [false], done)
 }
 
 function tip (rpc, done) {
-  rpc('getbestblockhash', [], done)
+  rpcd(rpc, 'getbestblockhash', [], done)
+}
+
+function transaction (rpc, txId, next, forgiving) {
+  rpcd(rpc, 'getrawtransaction', [txId, true], (err, tx) => {
+    if (err) {
+      if (forgiving && /No such mempool or blockchain transaction/.test(err)) return next()
+      return next(err)
+    }
+
+    next(null, augment(tx))
+  })
 }
 
 module.exports = {
