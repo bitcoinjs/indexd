@@ -13,11 +13,11 @@ See https://github.com/bitcoinjs/indexd/issues/6 if you think an independent tra
 
 
 ## Example
-Uses [`yajrpc`](https://github.com/dcousens/yajrpc) for the bitcoind RPC;
-[`leveldown`](https://github.com/level/leveldown) for the database;
-and [`zmq`](https://www.npmjs.com/package/zmq) for bitcoind notifications.
+Assumes [`yajrpc`](https://github.com/dcousens/yajrpc) is used for the bitcoind RPC;
+and [`leveldown`](https://github.com/level/leveldown) for the database.
 
 See [`example/`](https://github.com/bitcoinjs/indexd/tree/master/example) for a functioning express HTTP API example.
+The example uses [`zmq`](https://www.npmjs.com/package/zmq) for bitcoind notifications.
 
 
 ## License [ISC](LICENSE)
