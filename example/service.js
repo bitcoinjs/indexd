@@ -41,8 +41,14 @@ module.exports = function initialize (callback) {
       sequence = sequence.readUInt32LE()
 
       // if any ZMQ messages were lost,  assume a resync is required
-      if (lastSequence !== undefined && (sequence !== (lastSequence + 1))) {
-        debugZMQ(`${sequence - lastSequence - 1} messages lost`)
+      let expectedSequence = lastSequence + 1
+      if (Number.isFinite(expectedSequence) && sequence !== expectedSequence) {
+        if (sequence < expectedSequence) {
+          debugZMQ(`bitcoind may have restarted`)
+        } else {
+          debugZMQ(`${sequence - expectedSequence} messages lost`)
+        }
+
         lastSequence = sequence
         return syncQueue.push(null, errorSink)
       }
