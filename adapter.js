@@ -35,7 +35,7 @@ Adapter.prototype.fees = function (n, callback) {
 Adapter.prototype.seenScriptId = function (scId, callback) {
   this.blockchain.seenScriptId(scId, (err, result) => {
     if (err) return callback(err)
-    callback(null, result || this.mempool.knownScript(scId))
+    callback(null, result || this.mempool.seenScriptId(scId))
   })
 }
 
