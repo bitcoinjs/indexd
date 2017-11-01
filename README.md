@@ -17,7 +17,9 @@ Assumes [`yajrpc`](https://github.com/dcousens/yajrpc) is used for the bitcoind 
 and [`leveldown`](https://github.com/level/leveldown) for the database.
 
 See [`example/`](https://github.com/bitcoinjs/indexd/tree/master/example) for a functioning express HTTP API example.
-The example uses [`zmq`](https://www.npmjs.com/package/zmq) for bitcoind notifications.
+
+* Requires a running `bitcoind` node with ZMQ (`-zmqpubhashtx=tcp://127.0.0.1:30001 -zmqpubhashblock=tcp://127.0.0.1:30001`) and `-txindex`.
+* Defaults to `--testnet` ports/configuration, see `example/.env` for configuration.
 
 
 ## License [ISC](LICENSE)
