@@ -1,6 +1,7 @@
 let debug = require('debug')('service')
 let debugZMQ = require('debug')('service:zmq')
-let indexd = require('indexd')
+// let indexd = require('indexd') // XXX: you should use npm published package typically
+let indexd = require('../')
 let leveldown = require('leveldown')
 let qup = require('qup')
 let rpc = require('./rpc')

@@ -11,6 +11,7 @@
   "devDependencies": {
     "debug": "^3.1.0",
     "dotenv": "^4.0.0",
+    "express": "^4.16.2",
     "leveldown": "^1.6.0",
     "qup": "^1.2.1",
     "yajrpc": "^1.3.0",
@@ -24,7 +25,7 @@
     "url": "https://github.com/dcousens/indexd.git"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node example/index.js"
   },
   "author": "Daniel Cousens",
   "license": "ISC"
