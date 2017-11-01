@@ -1,3 +1,5 @@
+require('dotenv').load()
+
 let express = require('express')
 let service = require('./service')
 let api = require('./express')
