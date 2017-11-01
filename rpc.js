@@ -2,6 +2,7 @@ let crypto = require('crypto')
 let debug = require('./debug')('indexd:rpc')
 
 function rpcd (rpc, method, params, done) {
+  debug(method, params)
   rpc(method, params, (err, result) => {
     if (err) debug(method, params, err)
     if (err) return done(err)
