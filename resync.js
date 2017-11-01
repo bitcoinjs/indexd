@@ -3,29 +3,29 @@ let parallel = require('run-parallel')
 let rpcUtil = require('./rpc')
 
 // recursively calls connectBlock(id) until `bitcoind[id].next` is falsy
-function connectBlock (rpc, local, id, height, callback) {
+function connectBlock (rpc, indexd, id, height, callback) {
   debug(`Connecting ${id} @ ${height}`)
 
   rpcUtil.headerJSON(rpc, id, (err, header) => {
     if (err) return callback(err)
     if (header.height !== height) return callback(new Error('Height mismatch'))
 
-    local.connect(id, height, (err) => {
+    indexd.connect(id, height, (err) => {
       if (err) return callback(err)
 
       debug(`Connected ${id} @ ${height}`)
       if (!header.nextblockhash) return callback()
 
       // recurse until next is falsy
-      connectBlock(rpc, local, header.nextblockhash, height + 1, callback)
+      connectBlock(rpc, indexd, header.nextblockhash, height + 1, callback)
     })
   })
 }
 
-function disconnectBlock (local, id, callback) {
+function disconnectBlock (indexd, id, callback) {
   debug(`Disconnecting ${id}`)
 
-  local.disconnect(id, (err) => {
+  indexd.disconnect(id, (err) => {
     if (err) return callback(err)
 
     debug(`Disconnected ${id}`)
@@ -33,48 +33,48 @@ function disconnectBlock (local, id, callback) {
   })
 }
 
-module.exports = function resync (rpc, local, callback) {
-  debug('fetching bitcoind/local tips')
+module.exports = function resync (rpc, indexd, callback) {
+  debug('fetching bitcoind/indexd tips')
 
   parallel({
     bitcoind: (f) => rpcUtil.tip(rpc, f),
-    local: (f) => local.tip(f)
+    indexd: (f) => indexd.tip(f)
   }, (err, tips) => {
     if (err) return callback(err)
 
     // Step 0, genesis?
-    if (!tips.local) {
+    if (!tips.indexd) {
       debug('genesis')
       return rpcUtil.blockIdAtHeight(rpc, 0, (err, genesisId) => {
         if (err) return callback(err)
 
-        connectBlock(rpc, local, genesisId, 0, callback)
+        connectBlock(rpc, indexd, genesisId, 0, callback)
       })
     }
 
     // Step 1, equal?
     debug('...', tips)
-    if (tips.bitcoind === tips.local) return callback()
+    if (tips.bitcoind === tips.indexd) return callback()
 
-    // else, Step 2, is local behind? [bitcoind has local tip]
-    rpcUtil.headerJSON(tips.local, (err, common) => {
+    // else, Step 2, is indexd behind? [bitcoind has indexd tip]
+    rpcUtil.headerJSON(tips.indexd, (err, common) => {
       // not in bitcoind chain? [forked]
       if (
         (err && err.message === 'Block not found') ||
         (!err && common.confirmations === -1)
       ) {
-        debug('local is forked')
-        return disconnectBlock(local, tips.local, (err) => {
+        debug('indexd is forked')
+        return disconnectBlock(indexd, tips.indexd, (err) => {
           if (err) return callback(err)
 
-          resync(rpc, local, callback)
+          resync(rpc, indexd, callback)
         })
       }
       if (err) return callback(err)
 
-      // local is behind
+      // indexd is behind
       debug('bitcoind is ahead')
-      connectBlock(rpc, local, common.nextblockhash, common.height + 1, callback)
+      connectBlock(rpc, indexd, common.nextblockhash, common.height + 1, callback)
     })
   })
 }
