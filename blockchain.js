@@ -37,6 +37,7 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
       atomic.put(types.txIndex, { txId }, { height })
     })
 
+    // non-blocking, for event usage only, TODO: remove
     setTimeout(() => rpcUtil.header(this.rpc, blockId, (err, blockBuffer) => {
       if (err) return
       this.emitter.emit('block', blockId, blockBuffer, height)
