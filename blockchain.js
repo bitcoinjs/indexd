@@ -12,9 +12,10 @@ function Blockchain (emitter, db, rpc) {
 Blockchain.prototype.connect = function (blockId, height, callback) {
   rpcUtil.block(this.rpc, blockId, (err, block) => {
     if (err) return callback(err)
+    if (height !== block.height) return callback(new Error('Height mismatch')) // TODO: necessary?
 
     let atomic = this.db.atomic()
-    let { height, transactions } = block
+    let { transactions } = block
 
     transactions.forEach((tx) => {
       let { txId, txBuffer, ins, outs } = tx
@@ -45,7 +46,7 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
     atomic.write((err) => {
       if (err) return callback(err)
 
-      this.connect2ndOrder(blockId, block, callback)
+      this.connect2ndOrder(blockId, block, (err) => callback(err, block.nextblockhash))
     })
   })
 }

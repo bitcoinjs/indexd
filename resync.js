@@ -6,19 +6,14 @@ let rpcUtil = require('./rpc')
 function connectBlock (rpc, indexd, id, height, callback) {
   debug(`Connecting ${id} @ ${height}`)
 
-  rpcUtil.headerJSON(rpc, id, (err, header) => {
+  indexd.connect(id, height, (err, nextblockhash) => {
     if (err) return callback(err)
-    if (header.height !== height) return callback(new Error('Height mismatch'))
 
-    indexd.connect(id, height, (err) => {
-      if (err) return callback(err)
+    debug(`Connected ${id} @ ${height}`)
+    if (!nextblockhash) return callback()
 
-      debug(`Connected ${id} @ ${height}`)
-      if (!header.nextblockhash) return callback()
-
-      // recurse until next is falsy
-      connectBlock(rpc, indexd, header.nextblockhash, height + 1, callback)
-    })
+    // recurse until next is falsy
+    connectBlock(rpc, indexd, nextblockhash, height + 1, callback)
   })
 }
 
