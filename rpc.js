@@ -54,14 +54,6 @@ function blockIdAtHeight (rpc, height, done) {
   rpcd(rpc, 'getblockhash', [height], done)
 }
 
-function header (rpc, blockId, done) {
-  rpcd(rpc, 'getblockheader', [blockId, false], (err, hex) => {
-    if (err) return done(err)
-
-    done(null, Buffer.from(hex, 'hex'))
-  })
-}
-
 function headerJSON (rpc, blockId, done) {
   rpcd(rpc, 'getblockheader', [blockId, true], done)
 }
@@ -88,7 +80,6 @@ function transaction (rpc, txId, next, forgiving) {
 module.exports = {
   block,
   blockIdAtHeight,
-  header,
   headerJSON,
   mempool,
   tip,
