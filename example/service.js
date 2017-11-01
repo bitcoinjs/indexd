@@ -1,3 +1,5 @@
+let debug = require('debug')('service')
+let debugZMQ = require('debug')('service:zmq')
 let indexd = require('indexd')
 let leveldown = require('leveldown')
 let qup = require('qup')
@@ -9,15 +11,15 @@ let adapter = indexd.makeAdapter(db, rpc)
 
 module.exports = function initialize (callback) {
   function errorSink (err) {
-    if (err) console.error(err)
+    if (err) debug(err)
   }
 
-  console.log(`Opening leveldb @ ${process.env.INDEXDB}`)
+  debug(`Opening leveldb @ ${process.env.INDEXDB}`)
   db.open({
     writeBufferSize: 1 * 1024 * 1024 * 1024
   }, (err) => {
     if (err) return callback(err)
-    console.log(`Opened leveldb @ ${process.env.INDEXDB}`)
+    debug(`Opened leveldb @ ${process.env.INDEXDB}`)
 
     let syncQueue = qup((_, next) => {
       indexd.resync(rpc, adapter, (err) => {
@@ -39,21 +41,21 @@ module.exports = function initialize (callback) {
 
       // if any ZMQ messages were lost,  assume a resync is required
       if (lastSequence !== undefined && (sequence !== (lastSequence + 1))) {
-        console.log(`${sequence - lastSequence - 1} messages lost`)
+        debugZMQ(`${sequence - lastSequence - 1} messages lost`)
         lastSequence = sequence
         return syncQueue.push(null, errorSink)
       }
 
       lastSequence = sequence
       if (topic === 'hashblock') {
-        console.log(topic, message)
+        debugZMQ(topic, message)
         return syncQueue.push(null, errorSink)
       }
 
       // don't add to the mempool until after a reset is complete
       if (syncQueue.running > 0) return
       if (topic !== 'hashtx') return
-      console.logTx(topic, message)
+      debugZMQ(topic, message)
 
       adapter.mempool.add(message, errorSink)
     })
