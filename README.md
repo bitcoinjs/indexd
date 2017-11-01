@@ -11,15 +11,17 @@ The module uses `getblockheader`, `getblockhash`, `getblock` and `getbestblockha
 `-txindex` is not required for this module; but is still useful for individual transaction lookup (aka `txHex`).
 See https://github.com/bitcoinjs/indexd/issues/6 if you think an independent transaction index should be added.
 
+## Usage
+Assumes [`yajrpc`](https://github.com/dcousens/yajrpc) is used for the bitcoind RPC; and [`leveldown`](https://github.com/level/leveldown) for the database.
+See the [example](#example) for usage.
+
 
 ## Example
-Assumes [`yajrpc`](https://github.com/dcousens/yajrpc) is used for the bitcoind RPC;
-and [`leveldown`](https://github.com/level/leveldown) for the database.
+The [`example/`](https://github.com/bitcoinjs/indexd/tree/master/example) is a functioning [express](https://www.npmjs.com/package/express) REST HTTP API server.
 
-See [`example/`](https://github.com/bitcoinjs/indexd/tree/master/example) for a functioning express HTTP API example.
-
-* Requires a running `bitcoind` node with ZMQ (`-zmqpubhashtx=tcp://127.0.0.1:30001 -zmqpubhashblock=tcp://127.0.0.1:30001`) and `-txindex`.
-* Defaults to `--testnet` ports/configuration, see `example/.env` for configuration.
-
+* Requires a running `bitcoind` node
+	* with `-txindex`, and
+	* ZMQ (`-zmqpubhashtx=tcp://127.0.0.1:30001 -zmqpubhashblock=tcp://127.0.0.1:30001`)
+* Assumes `--testnet` ports/configuration, see `example/.env` for configuration.
 
 ## License [ISC](LICENSE)
