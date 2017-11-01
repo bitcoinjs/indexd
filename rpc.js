@@ -49,7 +49,11 @@ function block (rpc, blockId, done) {
 }
 
 function blockIdAtHeight (rpc, height, done) {
-  rpcd(rpc, 'getblockhash', [height], done)
+  rpcd(rpc, 'getblockhash', [height], (err, blockId) => {
+    if (err) return done(err)
+    if (!blockId) return done(new Error(`Missing block at ${height}`))
+    done(null, blockId)
+  })
 }
 
 function header (rpc, blockId, done) {
