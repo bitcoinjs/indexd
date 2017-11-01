@@ -27,6 +27,7 @@ function augment (tx) {
   })
   tx.vout.forEach((output) => {
     output.scId = sha256(output.scriptPubKey.hex)
+    delete output.scriptPubKey
     output.value = Math.round(output.value * 1e8)
     output.vout = output.n
     delete output.n
