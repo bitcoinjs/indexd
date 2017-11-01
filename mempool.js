@@ -78,7 +78,7 @@ Mempool.prototype.reset = function (callback) {
   }
 
   debug(`Cleared`)
-  rpcUtil(this.rpc, (err, actualTxIds) => {
+  rpcUtil.mempool(this.rpc, (err, actualTxIds) => {
     if (err) return callback(err)
 
     debug(`Downloading ${actualTxIds.length} transactions`)
