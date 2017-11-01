@@ -57,7 +57,7 @@ module.exports = function resync (rpc, indexd, callback) {
     if (tips.bitcoind === tips.indexd) return callback()
 
     // else, Step 2, is indexd behind? [bitcoind has indexd tip]
-    rpcUtil.headerJSON(tips.indexd, (err, common) => {
+    rpcUtil.headerJSON(rpc, tips.indexd, (err, common) => {
       // not in bitcoind chain? [forked]
       if (
         (err && err.message === 'Block not found') ||
