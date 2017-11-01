@@ -13,14 +13,14 @@ function atomic () {
 
 function del (type, key, callback) {
   typeforce(type.keyType, key)
-  key = type.key ? type.key.encode(key) : NIL
+  key = type.key.encode(key)
 
   return this.del(key, callback)
 }
 
 function get (type, key, callback) {
   typeforce(type.keyType, key)
-  key = type.key ? type.key.encode(key) : NIL
+  key = type.key.encode(key)
 
   this.get(key, (err, value) => {
     if (err && (/NotFound/).test(err)) return callback()
@@ -35,7 +35,7 @@ function put (type, key, value, callback) {
   typeforce(type.keyType, key)
   typeforce(type.valueType, value)
 
-  key = type.key ? type.key.encode(key) : NIL
+  key = type.key.encode(key)
   value = type.value ? type.value.encode(value) : NIL
 
   return this.put(key, value, callback)
