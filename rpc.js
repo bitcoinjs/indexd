@@ -6,7 +6,7 @@ function rpcd (rpc, method, params, done) {
     if (err) debug(method, params, err)
     if (err) return done(err)
 
-    done(null, err)
+    done(null, result)
   })
 }
 
@@ -50,11 +50,7 @@ function block (rpc, blockId, done) {
 }
 
 function blockIdAtHeight (rpc, height, done) {
-  rpcd(rpc, 'getblockhash', [height], (err, blockId) => {
-    if (err) return done(err)
-    if (!blockId) return done(new Error(`Missing block at ${height}`))
-    done(null, blockId)
-  })
+  rpcd(rpc, 'getblockhash', [height], done)
 }
 
 function header (rpc, blockId, done) {
@@ -66,11 +62,7 @@ function header (rpc, blockId, done) {
 }
 
 function headerJSON (rpc, blockId, done) {
-  rpcd(rpc, 'getblockheader', [blockId, true], (err, hex) => {
-    if (err) return done(err)
-
-    done(null, Buffer.from(hex, 'hex'))
-  })
+  rpcd(rpc, 'getblockheader', [blockId, true], done)
 }
 
 function mempool (rpc, done) {
