@@ -25,7 +25,7 @@
     "url": "https://github.com/dcousens/indexd.git"
   },
   "scripts": {
-    "start": "node example/index.js"
+    "start": "cd example/ && node index.js"
   },
   "author": "Daniel Cousens",
   "license": "ISC"
