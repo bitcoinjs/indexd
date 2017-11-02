@@ -23,5 +23,6 @@ The [`example/`](https://github.com/bitcoinjs/indexd/tree/master/example) is a f
 	* with `-txindex`, and
 	* ZMQ (`-zmqpubhashtx=tcp://127.0.0.1:30001 -zmqpubhashblock=tcp://127.0.0.1:30001`)
 * Assumes `--testnet` ports/configuration, see `example/.env` for configuration.
+* Change `-rpcworkqueue` from `16` to `32` for increased throughput [in some scenarios]
 
 ## License [ISC](LICENSE)
