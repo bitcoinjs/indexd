@@ -6,9 +6,7 @@ let parallel = require('run-parallel')
 let rpc = require('./rpc')
 
 function Hex256bit (value) {
-  return typeof value === 'string' &&
-    /^([0-9a-f]{2})+$/i.test(value) &&
-    value.length === 64
+  return typeof value === 'string' && /^[0-9a-fA-F]{64}$/.test(value)
 }
 
 module.exports = function () {
