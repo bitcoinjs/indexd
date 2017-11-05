@@ -18,7 +18,7 @@ function sha256 (hex) {
 }
 
 function augment (tx) {
-  tx.txBuffer = Buffer.from(tx.hex, 'hex')
+//    tx.txBuffer = Buffer.from(tx.hex, 'hex')
   delete tx.hex
   tx.txId = tx.txid
   delete tx.txid
@@ -45,8 +45,16 @@ function block (rpc, blockId, done) {
   rpcd(rpc, 'getblock', [blockId, 2], (err, block) => {
     if (err) return done(err)
 
+    block.blockId = blockId
+    delete block.hash
+    block.nextBlockId = block.nextblockhash
+    delete block.nextblockhash
+    block.prevBlockId = block.previousblockhash
+    delete block.prevblockhash
+
     block.transactions = block.tx.map(t => augment(t))
     delete block.tx
+
     done(null, block)
   })
 }
@@ -56,7 +64,16 @@ function blockIdAtHeight (rpc, height, done) {
 }
 
 function headerJSON (rpc, blockId, done) {
-  rpcd(rpc, 'getblockheader', [blockId, true], done)
+  rpcd(rpc, 'getblockheader', [blockId, true], (err, header) => {
+    if (err) return done(err)
+
+    header.blockId = blockId
+    delete header.hash
+    header.nextBlockId = header.nextblockhash
+    delete header.nextblockhash
+
+    done(null, header)
+  })
 }
 
 function mempool (rpc, done) {
@@ -64,7 +81,16 @@ function mempool (rpc, done) {
 }
 
 function tip (rpc, done) {
-  rpcd(rpc, 'getbestblockhash', [], done)
+  rpcd(rpc, 'getchaintips', [], (err, tips) => {
+    if (err) return done(err)
+
+    let {
+      hash: blockId,
+      height
+    } = tips.filter(x => x.status === 'active').pop()
+
+    done(null, { blockId, height })
+  })
 }
 
 function transaction (rpc, txId, next, forgiving) {

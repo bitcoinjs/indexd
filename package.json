@@ -8,17 +8,6 @@
     "typeforce": "^1.10.6",
     "varstruct": "^6.1.1"
   },
-  "devDependencies": {
-    "bitcoinjs-lib": "^3.3.0",
-    "debug": "^3.1.0",
-    "dotenv": "^4.0.0",
-    "express": "^4.16.2",
-    "leveldown": "^1.6.0",
-    "qup": "^1.2.1",
-    "ws": "^3.3.1",
-    "yajrpc": "^1.3.0",
-    "zmq": "^2.15.3"
-  },
   "optionalDependencies": {
     "debug": "*"
   },
@@ -26,9 +15,7 @@
     "type": "git",
     "url": "https://github.com/dcousens/indexd.git"
   },
-  "scripts": {
-    "start": "cd example/ && node index.js"
-  },
+  "scripts": {},
   "author": "Daniel Cousens",
   "license": "ISC"
 }
