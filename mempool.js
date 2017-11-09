@@ -120,7 +120,7 @@ Mempool.prototype.transactionIdsByScriptId = function (scId) {
 }
 
 Mempool.prototype.__txosListByScriptId = function (scId) {
-  return this.scripts[scId] || {}
+  return this.scripts[scId] || []
 }
 
 Mempool.prototype.txosByScriptId = function (scId) {
