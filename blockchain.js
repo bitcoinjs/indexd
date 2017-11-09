@@ -248,7 +248,7 @@ Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback
 // TODO: public?
 Blockchain.prototype.__txosListByScriptId = function (scId, height, callback, limit) {
   limit = limit || 10000
-  let results = {}
+  let results = []
 
   this.db.iterator(types.scIndex, {
     gte: { scId, height, txId: ZERO64, vout: 0 },
