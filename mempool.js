@@ -45,9 +45,9 @@ Mempool.prototype.add = function (txId, callback) {
       setTimeout(() => this.emitter.emit('spent', `${prevTxId}:${vout}`, txId, txBuffer))
     })
 
-    outs.forEach(({ scId, value }, vout) => {
+    outs.forEach(({ scId, script, value }, vout) => {
       getOrSetDefault(this.scripts, scId, []).push({ txId, vout })
-      this.txos[`${txId}:${vout}`] = { value }
+      this.txos[`${txId}:${vout}`] = { value, script }
       this.statistics.outputs++
 
       setTimeout(() => this.emitter.emit('script', scId, txId, txBuffer))
