@@ -90,27 +90,8 @@ let txoIndex = {
     script: typeforce.Buffer
   }),
   value: vstruct([
-    ['value', satoshis],
-    ['script', vstruct.VarBuffer(vstruct.UInt16LE)]
-  ])
-}
-
-// TODO: remove in 0.9.0, superceded by above, for backwards compat only
-let txoIndexOld = {
-  keyType: typeforce.compile({
-    txId: tfHex64,
-    vout: typeforce.UInt32
-  }),
-  key: vstruct([
-    ['prefix', vstruct.Value(vstruct.UInt8, 0x04)],
-    ['txId', Hex64],
-    ['vout', vout]
-  ]),
-  valueType: typeforce.compile({
-    value: typeforce.UInt53
-  }),
-  value: vstruct([
     ['value', satoshis]
+//      ['script', vstruct.VarBuffer(vstruct.UInt16LE)] // TODO: add in 0.9.0
   ])
 }
 
@@ -146,6 +127,5 @@ module.exports = {
   spentIndex,
   txIndex,
   txoIndex,
-  txoIndexOld,
   tip
 }
