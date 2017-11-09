@@ -64,18 +64,18 @@ Adapter.prototype.tipHeight = function (callback) {
 
 // returns set of transactions associated with script id (SHA256(script))
 // minimum height can be provided if many transaction associations exist
-Adapter.prototype.transactionIdsByScriptId = function (scId, height, callback) {
+Adapter.prototype.transactionIdsByScriptId = function (scId, height, callback, dbLimit) {
   this.blockchain.transactionIdsByScriptId(scId, height, (err, txIds) => {
     if (err) return callback(err)
 
     Object.assign(txIds, this.mempool.transactionIdsByScriptId(scId))
     callback(null, txIds)
-  })
+  }, dbLimit)
 }
 
 // returns a mapping of txos (`txid:vout`) for script id, mapping guarantees no duplicates
 // the format `txid:vout`: { .., scId }, supports streamline merging with other queries
-Adapter.prototype.txosByScriptId = function (scId, height, callback) {
+Adapter.prototype.txosByScriptId = function (scId, height, callback, dbLimit) {
   let resultMap = {}
 
   this.blockchain.txosByScriptId(scId, height, (err, txosMap) => {
@@ -83,7 +83,7 @@ Adapter.prototype.txosByScriptId = function (scId, height, callback) {
 
     Object.assign(resultMap, txosMap, this.mempool.txosByScriptId(scId))
     callback(null, resultMap)
-  })
+  }, dbLimit)
 }
 
 // returns extra txo information ({ txId, vout, value }) for the provided txo
@@ -100,7 +100,7 @@ Adapter.prototype.txoByTxo = function (txId, vout, callback) {
 }
 
 // returns a list of unspent txos
-Adapter.prototype.utxosByScriptId = function (scId, height, callback) {
+Adapter.prototype.utxosByScriptId = function (scId, height, callback, limit) {
   this.txosByScriptId(scId, height, (err, txosMap) => {
     if (err) return callback(err)
 
@@ -123,7 +123,7 @@ Adapter.prototype.utxosByScriptId = function (scId, height, callback) {
     }
 
     parallel(tasks, (err) => callback(err, utxos))
-  })
+  }, limit)
 }
 
 module.exports = function makeAdapter (db, rpc) {

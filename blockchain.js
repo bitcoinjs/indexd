@@ -217,7 +217,7 @@ Blockchain.prototype.tipHeight = function (callback) {
   })
 }
 
-Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback) {
+Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback, limit) {
   this.txosByScriptId(scId, height, (err, txosMap) => {
     if (err) return callback(err)
 
@@ -247,15 +247,17 @@ Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback
 
       callback(null, txIds)
     })
-  })
+  }, limit)
 }
 
-Blockchain.prototype.txosByScriptId = function (scId, height, callback) {
+Blockchain.prototype.txosByScriptId = function (scId, height, callback, limit) {
+  limit = limit || 10000
   let resultMap = {}
 
   this.db.iterator(types.scIndex, {
     gte: { scId, height, txId: ZERO64, vout: 0 },
-    lt: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 }
+    lt: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 },
+    limit: limit
   }, ({ txId, vout, height }) => {
     resultMap[`${txId}:${vout}`] = { txId, vout, scId, height }
   }, (err) => callback(err, resultMap))
