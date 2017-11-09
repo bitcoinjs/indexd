@@ -247,14 +247,26 @@ Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback
 
 // TODO: public?
 Blockchain.prototype.__txosListByScriptId = function (scId, height, callback, limit) {
+  let offset = 0
+  if (Array.isArray(limit)) {
+    offset = limit[0]
+    limit = limit[1]
+  }
   limit = limit || 10000
+
   let results = []
+  let count = 0
 
   this.db.iterator(types.scIndex, {
     gte: { scId, height, txId: ZERO64, vout: 0 },
     lt: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 },
     limit: limit
-  }, ({ txId, vout, height }) => {
+  }, (txo) => {
+    // XXX: O(offset) walk, not great
+    ++count
+    if (count < offset) return
+
+    let { txId, vout, height } = txo
     results.push({ txId, vout, scId, height })
   }, (err) => callback(err, results))
 }
