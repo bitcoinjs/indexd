@@ -250,7 +250,7 @@ Blockchain.prototype.__txosListByScriptId = function (scId, height, callback, li
   let offset = 0
   if (Array.isArray(limit)) {
     offset = limit[0]
-    limit = limit[1]
+    limit = limit[1] - offset
   }
   limit = limit || 10000
 
