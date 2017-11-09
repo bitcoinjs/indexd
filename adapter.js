@@ -65,11 +65,28 @@ Adapter.prototype.tipHeight = function (callback) {
 // returns set of transactions associated with script id (SHA256(script))
 // minimum height can be provided if many transaction associations exist
 Adapter.prototype.transactionIdsByScriptId = function (scId, height, callback, dbLimit) {
-  this.blockchain.transactionIdsByScriptId(scId, height, (err, txIds) => {
+  this.blockchain.transactionIdsByScriptId(scId, height, (err, txIds, position) => {
     if (err) return callback(err)
 
     Object.assign(txIds, this.mempool.transactionIdsByScriptId(scId))
-    callback(null, txIds)
+    callback(null, txIds, position)
+  }, dbLimit)
+}
+
+Adapter.prototype.transactionIdListFromScriptId = function (scId, height, callback, dbLimit) {
+  this.blockchain.transactionIdsByScriptId(scId, height, (err, txIdSet, position) => {
+    if (err) return callback(err)
+
+    let txIds = []
+    for (let txId in txIdSet) txIds.push(txId)
+
+    let txIdSet2 = this.mempool.transactionIdsByScriptId(scId)
+    for (let txId in txIdSet2) {
+      if (txIdSet[txId]) continue // prevent [impossible?] duplicates
+      txIds.push(txId)
+    }
+
+    callback(null, txIds, position)
   }, dbLimit)
 }
 
