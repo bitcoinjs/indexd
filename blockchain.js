@@ -218,7 +218,7 @@ Blockchain.prototype.tipHeight = function (callback) {
 }
 
 Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback, limit) {
-  this.__txosListByScriptId(scId, height, (err, txos) => {
+  this.__txosListByScriptId(scId, height, (err, txos, position) => {
     if (err) return callback(err)
 
     let tasks = txos.map((txo) => {
@@ -240,7 +240,7 @@ Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback
         txIdSet[txId] = true
       })
 
-      callback(null, txIdSet)
+      callback(null, txIdSet, position)
     })
   }, limit)
 }
@@ -256,6 +256,7 @@ Blockchain.prototype.__txosListByScriptId = function (scId, height, callback, li
 
   let results = []
   let count = 0
+  let maxHeight = height
 
   this.db.iterator(types.scIndex, {
     gte: { scId, height, txId: ZERO64, vout: 0 },
@@ -267,8 +268,9 @@ Blockchain.prototype.__txosListByScriptId = function (scId, height, callback, li
     if (count < offset) return
 
     let { txId, vout, height } = txo
+    if (height > maxHeight) maxHeight = height
     results.push({ txId, vout, scId, height })
-  }, (err) => callback(err, results))
+  }, (err) => callback(err, results, { height, offset: count }))
 }
 
 Blockchain.prototype.txosByScriptId = function (scId, height, callback, limit) {
