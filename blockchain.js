@@ -218,35 +218,45 @@ Blockchain.prototype.tipHeight = function (callback) {
 }
 
 Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback, limit) {
-  this.txosByScriptId(scId, height, (err, txosMap) => {
+  this.__txosListByScriptId(scId, height, (err, txos) => {
     if (err) return callback(err)
 
-    let tasks = []
-    for (let txoKey in txosMap) {
-      let txo = txosMap[txoKey]
-
-      tasks.push((next) => this.spentFromTxo(txo, next))
-    }
+    let tasks = txos.map((txo) => {
+      return (next) => this.spentFromTxo(txo, next)
+    })
 
     parallel(tasks, (err, spents) => {
       if (err) return callback(err)
 
-      let txIds = {}
+      let txIdSet = {}
 
       spents.forEach((spent) => {
         if (!spent) return
 
-        txIds[spent.txId] = true
+        txIdSet[spent.txId] = true
       })
 
-      for (let x in txosMap) {
-        let { txId } = txosMap[x]
-        txIds[txId] = true
-      }
+      txos.forEach(({ txId }) => {
+        txIdSet[txId] = true
+      })
 
-      callback(null, txIds)
+      callback(null, txIdSet)
     })
   }, limit)
+}
+
+// TODO: public?
+Blockchain.prototype.__txosListByScriptId = function (scId, height, callback, limit) {
+  limit = limit || 10000
+  let results = {}
+
+  this.db.iterator(types.scIndex, {
+    gte: { scId, height, txId: ZERO64, vout: 0 },
+    lt: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 },
+    limit: limit
+  }, ({ txId, vout, height }) => {
+    results.push({ txId, vout, scId, height })
+  }, (err) => callback(err, results))
 }
 
 Blockchain.prototype.txosByScriptId = function (scId, height, callback, limit) {

@@ -101,28 +101,23 @@ Adapter.prototype.txoByTxo = function (txId, vout, callback) {
 
 // returns a list of unspent txos
 Adapter.prototype.utxosByScriptId = function (scId, height, callback, limit) {
-  this.txosByScriptId(scId, height, (err, txosMap) => {
+  this.__txosListByScriptId(scId, height, (err, txos) => {
     if (err) return callback(err)
 
-    let utxos = {}
-    let tasks = {}
-    for (let txoKey in txosMap) {
-      let txo = txosMap[txoKey]
-
-      tasks[txoKey] = (next) => this.spentsFromTxo(txo, (err, spents) => {
+    let tasks = txos.map((txo) => {
+      return (next) => this.spentsFromTxo(txo, (err, spents) => {
         if (err) return next(err)
-        if (spents.length > 0) return next()
+        if (spents.length !== 0) return next()
 
         this.txoByTxo(txo.txId, txo.vout, (err, txoExtra) => {
           if (err) return next(err)
 
-          utxos[txoKey] = Object.assign(txo, txoExtra)
-          next()
+          next(null, Object.assign(txo, txoExtra))
         })
       })
-    }
+    })
 
-    parallel(tasks, (err) => callback(err, utxos))
+    parallel(tasks, callback)
   }, limit)
 }
 

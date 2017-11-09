@@ -103,31 +103,24 @@ Mempool.prototype.spentsFromTxo = function ({ txId, vout }) {
 }
 
 Mempool.prototype.transactionIdsByScriptId = function (scId) {
-  let txosMap = this.txosByScriptId(scId)
-  let spentsMap = {}
+  let txos = this.__txosListByScriptId(scId)
+  let txIdSet = {}
 
-  for (let txoKey in txosMap) {
-    let txo = txosMap[txoKey]
-    spentsMap[txoKey] = this.spentsFromTxo(txo)
-  }
-
-  let txIds = {}
-
-  for (let x in spentsMap) {
-    let spents = spentsMap[x]
-    if (!spents) continue
-
-    spents.forEach(({ txId }) => {
-      txIds[txId] = true
+  txos.forEach((txo) => {
+    this.spentsFromTxo(txo).forEach(({ txId }) => {
+      txIdSet[txId] = true
     })
-  }
+  })
 
-  for (let x in txosMap) {
-    let { txId } = txosMap[x]
-    txIds[txId] = true
-  }
+  txos.forEach(({ txId }) => {
+    txIdSet[txId] = true
+  })
 
-  return txIds
+  return txIdSet
+}
+
+Mempool.prototype.__txosListByScriptId = function (scId) {
+  return this.scripts[scId] || {}
 }
 
 Mempool.prototype.txosByScriptId = function (scId) {
