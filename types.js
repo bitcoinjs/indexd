@@ -89,7 +89,8 @@ let txoIndex = {
     value: typeforce.UInt53
   }),
   value: vstruct([
-    ['value', satoshis]
+    ['value', satoshis],
+    ['script', vstruct.VarBuffer(vstruct.UInt16LE)]
   ])
 }
 

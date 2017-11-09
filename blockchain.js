@@ -28,9 +28,9 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
         setTimeout(() => this.emitter.emit('spent', `${prevTxId}:${vout}`, txId))
       })
 
-      outs.forEach(({ scId, value, vout }) => {
+      outs.forEach(({ scId, script, value, vout }) => {
         atomic.put(types.scIndex, { scId, height, txId, vout }, null)
-        atomic.put(types.txoIndex, { txId, vout }, { value })
+        atomic.put(types.txoIndex, { txId, vout }, { value, script })
         setTimeout(() => this.emitter.emit('script', scId, txId, txBuffer))
       })
 

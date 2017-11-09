@@ -27,8 +27,9 @@ function augment (tx) {
     delete input.txid
   })
   tx.vout.forEach((output) => {
-    output.scId = sha256(output.scriptPubKey.hex)
+    output.script = Buffer.from(output.scriptPubKey.hex, 'hex')
     delete output.scriptPubKey
+    output.scId = sha256(output.script)
     output.value = Math.round(output.value * 1e8)
     output.vout = output.n
     delete output.n
