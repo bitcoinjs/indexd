@@ -221,24 +221,23 @@ Blockchain.prototype.transactionIdsByScriptId = function (scId, height, callback
   this.txosByScriptId(scId, height, (err, txosMap) => {
     if (err) return callback(err)
 
-    let taskMap = {}
+    let tasks = []
     for (let txoKey in txosMap) {
       let txo = txosMap[txoKey]
 
-      taskMap[txoKey] = (next) => this.spentFromTxo(txo, next)
+      tasks.push((next) => this.spentFromTxo(txo, next))
     }
 
-    parallel(taskMap, (err, spentMap) => {
+    parallel(tasks, (err, spents) => {
       if (err) return callback(err)
 
       let txIds = {}
 
-      for (let x in spentMap) {
-        let spent = spentMap[x]
-        if (!spent) continue
+      spents.forEach((spent) => {
+        if (!spent) return
 
         txIds[spent.txId] = true
-      }
+      })
 
       for (let x in txosMap) {
         let { txId } = txosMap[x]
