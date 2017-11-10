@@ -181,7 +181,8 @@ Blockchain.prototype.fees = function (n, callback) {
     let fresult = []
 
     this.db.iterator(types.feeIndex, {
-      gte: { height: maxHeight - n }
+      gte: { height: maxHeight - (n - 1) },
+      limit: n
     }, ({ height }, { fees, size }) => {
       fresult.push({ height, fees, size })
     }, (err) => callback(err, fresult))
