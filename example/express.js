@@ -81,7 +81,7 @@ module.exports = function () {
       scId = bitcoin.crypto.sha256(script).toString('hex')
     } catch (e) { return respond(req, res, 400) }
 
-    adapter.unspentsByScriptId(scId, (err, result) => respond(req, res, err, result))
+    adapter.utxosByScriptId(scId, (err, result) => respond(req, res, err, result))
   })
 
   router.get('/t/:id', (req, res) => {
