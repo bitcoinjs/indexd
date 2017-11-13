@@ -10,6 +10,7 @@ function Blockchain (emitter, db, rpc) {
 }
 
 Blockchain.prototype.connect = function (blockId, height, callback) {
+  const events = []
   rpcUtil.block(this.rpc, blockId, (err, block) => {
     if (err) return callback(err)
     if (height !== block.height) return callback(new Error('Height mismatch')) // TODO: necessary?
@@ -25,28 +26,33 @@ Blockchain.prototype.connect = function (blockId, height, callback) {
 
         let { prevTxId, vout } = input
         atomic.put(types.spentIndex, { txId: prevTxId, vout }, { txId, vin })
-        setTimeout(() => this.emitter.emit('spent', `${prevTxId}:${vout}`, txId))
+        events.push(['spent', `${prevTxId}:${vout}`, txId])
       })
 
       outs.forEach(({ scId, script, value, vout }) => {
         atomic.put(types.scIndex, { scId, height, txId, vout }, null)
         atomic.put(types.txoIndex, { txId, vout }, { value, script })
-        setTimeout(() => this.emitter.emit('script', scId, txId, txBuffer))
+        events.push(['script', scId, txId, txBuffer])
       })
 
-      setTimeout(() => this.emitter.emit('transaction', txId, txBuffer, blockId))
       atomic.put(types.txIndex, { txId }, { height })
+      events.push(['transaction', txId, txBuffer, blockId])
     })
 
     // non-blocking, for events only
-    setTimeout(() => this.emitter.emit('block', blockId, height))
+    events.push(['block', blockId, height])
 
     debug(`Putting ${blockId} @ ${height} - ${transactions.length} transactions`)
     atomic.put(types.tip, {}, { blockId, height })
     atomic.write((err) => {
       if (err) return callback(err)
 
-      this.connect2ndOrder(blockId, block, (err) => callback(err, block.nextblockhash))
+      this.connect2ndOrder(blockId, block, (err) => {
+        callback(err, block.nextblockhash)
+        setTimeout(() => {
+          for (const args of events) this.emitter.emit(...args)
+        })
+      })
     })
   })
 }
