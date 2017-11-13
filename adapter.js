@@ -118,9 +118,10 @@ Adapter.prototype.txoByTxo = function (txId, vout, callback) {
 
 // returns a list of unspent txos
 Adapter.prototype.utxosByScriptId = function (scId, height, callback, limit) {
-  this.__txosListByScriptId(scId, height, (err, txos) => {
+  this.txosByScriptId(scId, height, (err, txos) => {
     if (err) return callback(err)
 
+    txos = Object.keys(txos).map(x => txos[x])
     let tasks = txos.map((txo) => {
       return (next) => this.spentsFromTxo(txo, (err, spents) => {
         if (err) return next(err)
