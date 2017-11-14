@@ -103,6 +103,16 @@ Adapter.prototype.txosByScriptId = function (scId, height, callback, dbLimit) {
   }, dbLimit)
 }
 
+// returns a list of { txId, vout, scId, height }, height is undefined if from the mempool
+// has a weak guarantee of no duplicates, enforced by mempool.clear in resync
+Adapter.prototype.txosListByScriptId = function (scId, height, callback, dbLimit) {
+  this.blockchain.__txosListByScriptId(scId, height, (err, txos) => {
+    if (err) return callback(err)
+
+    callback(null, txos.concat(this.mempool.__txosListByScriptId(scId)))
+  }, dbLimit)
+}
+
 // returns extra txo information ({ txId, vout, value }) for the provided txo
 // TODO: see #15
 Adapter.prototype.txoByTxo = function (txId, vout, callback) {
