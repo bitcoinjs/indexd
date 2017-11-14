@@ -1,4 +1,4 @@
-let debug = require('debug')('service')
+let debug = require('debug')('example:service')
 let debugZMQ = require('debug')('service:zmq')
 // let indexd = require('indexd') // XXX: you should use npm published package typically
 let indexd = require('../')

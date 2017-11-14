@@ -1,9 +1,11 @@
+let adapter = require('./service').adapter
 let bitcoin = require('bitcoinjs-lib')
 let bodyParser = require('body-parser')
 let express = require('express')
-let adapter = require('./service').adapter
+let handleSocket = require('./socket')
 let parallel = require('run-parallel')
 let rpc = require('./rpc')
+let ws = require('ws')
 
 function Hex256bit (value) {
   return typeof value === 'string' && /^[0-9a-fA-F]{64}$/.test(value)
@@ -130,6 +132,13 @@ module.exports = function () {
 
       respond(req, res, err, !err && results)
     })
+  })
+
+  let wss = new ws.Server({ noServer: true })
+  router.use('/ws', function (req, _res, next) {
+    if (!req.ws) return next()
+
+    wss.handleUpgrade(req, req.socket, [], (socket) => handleSocket(socket))
   })
 
   return router
