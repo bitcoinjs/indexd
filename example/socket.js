@@ -57,8 +57,7 @@ adapter.emitter.on('transaction', (txId, _, blockId) => {
   shared.emit(txId, vsStatus(blockId, txId))
 })
 
-module.exports = shared
-module.exports.socket = function socket (socket) {
+module.exports = function handleSocket (socket) {
   let load = 0
   let height = 0
   let watching = {}
