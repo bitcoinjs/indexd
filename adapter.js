@@ -145,7 +145,11 @@ Adapter.prototype.utxosByScriptId = function (scId, height, callback, limit) {
       })
     })
 
-    parallel(tasks, callback)
+    parallel(tasks, (err, txos) => {
+      if (err) return callback(err, txos)
+      // filter empty txos
+      callback(err, txos.filter(txo => txo !== undefined))
+    })
   }, limit)
 }
 
