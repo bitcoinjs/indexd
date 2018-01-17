@@ -31,6 +31,13 @@ function disconnectBlock (indexd, id, callback) {
 module.exports = function resync (rpc, indexd, callback) {
   debug('fetching bitcoind/indexd tips')
 
+  function trySyncFrom (id, height) {
+    connectBlock(rpc, indexd, id, height, (err) => {
+      if (err) return callback(err)
+      callback(null, true)
+    })
+  }
+
   parallel({
     bitcoind: (f) => rpcUtil.tip(rpc, f),
     indexd: (f) => indexd.tip(f)
@@ -43,17 +50,17 @@ module.exports = function resync (rpc, indexd, callback) {
       return rpcUtil.blockIdAtHeight(rpc, 0, (err, genesisId) => {
         if (err) return callback(err)
 
-        connectBlock(rpc, indexd, genesisId, 0, callback)
+        trySyncFrom(genesisId, 0)
       })
     }
 
     // Step 1, equal?
     debug('...', tips)
-    if (tips.bitcoind === tips.indexd) return callback()
+    if (tips.bitcoind === tips.indexd) return callback(null, false)
 
-    // else, Step 2, is indexd behind? [bitcoind has indexd tip]
+    // Step 2, is indexd behind? [aka, does bitcoind have the indexd tip]
     rpcUtil.headerJSON(rpc, tips.indexd, (err, common) => {
-      // not in bitcoind chain? [forked]
+      // no? forked
       if (
         (err && err.message === 'Block not found') ||
         (!err && common.confirmations === -1)
@@ -67,9 +74,9 @@ module.exports = function resync (rpc, indexd, callback) {
       }
       if (err) return callback(err)
 
-      // indexd is behind
+      // yes, indexd is behind
       debug('bitcoind is ahead')
-      connectBlock(rpc, indexd, common.nextblockhash, common.height + 1, callback)
+      trySyncFrom(common.nextblockhash, common.height + 1)
     })
   })
 }
