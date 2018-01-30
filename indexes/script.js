@@ -94,23 +94,28 @@ ScriptIndex.prototype.seenScriptId = function (db, scId, callback) {
   }, (err) => callback(err, result))
 }
 
-// XXX: dbLimit defaults to 300, but a FULL block on average contains 4400 txos
+// XXX: maxRows defaults to 440, but a FULL block on average contains 4400 txos
+// thereby if heightRange distance is < 2, the limit is ignored
+//
 // returns a list of { txId, vout, height, value } by { scId, heightRange: [from, to] }
-ScriptIndex.prototype.txosBy = function (db, scId, heightRange, callback, limit) {
-  limit = limit || 3e2
+ScriptIndex.prototype.txosBy = function (db, { scId, heightRange }, maxRows, callback) {
+  maxRows = maxRows || 440
   let [fromHeight, toHeight] = heightRange
-  let results = []
+  let distance = toHeight - fromHeight
+  if (distance < 0) return callback(null, [])
+  if (distance < 2) maxRows = Infinity
 
+  let results = []
   db.iterator(SCRIPT, {
     gte: { scId, height: fromHeight, txId: ZERO64, vout: 0 },
     lt: { scId, height: toHeight, txId: MAX64, vout: 0xffffffff },
-    limit: limit + 1
+    limit: maxRows + 1
   }, ({ height, txId, vout }, { value }, __iterator) => {
     results.push({
       txId, vout, height, value
     })
 
-    if (results.length > limit) return __iterator.end((err) => callback(err || new RangeError('Exceeded Limit')))
+    if (results.length > maxRows) return __iterator.end((err) => callback(err || new RangeError('Exceeded Limit')))
   }, (err) => callback(err, results))
 }
 

@@ -252,9 +252,9 @@ Indexd.prototype.seenScriptId = function (scId, callback) {
   this.indexes.scripts.seenScriptId(this.db, scId, callback)
 }
 
-// returns a set of txIds with inputs/outputs from/to a script id
-Indexd.prototype.transactionIdsByScriptId = function (scId, heightRange, callback, dbLimit) {
-  this.txosByScriptId(scId, heightRange, (err, txos) => {
+// returns a set of txIds with inputs/outputs from/to a { scId, heightRange }
+Indexd.prototype.transactionIdsByScriptRange = function (scRange, dbLimit, callback) {
+  this.txosByScriptId(scRange, dbLimit, (err, txos) => {
     if (err) return callback(err)
 
     let txIdSet = {}
@@ -273,23 +273,23 @@ Indexd.prototype.transactionIdsByScriptId = function (scId, heightRange, callbac
 
       callback(null, txIdSet)
     })
-  }, dbLimit)
+  })
 }
 
-// returns a list of txos { txId, vout, height, value } by script id
-Indexd.prototype.txosByScriptId = function (scId, heightRange, callback, dbLimit) {
-  this.indexes.script.txosBy(this.db, scId, heightRange, callback, dbLimit)
+// returns a list of txos { txId, vout, height, value } by { scId, heightRange }
+Indexd.prototype.txosByScriptRange = function (scRange, dbLimit, callback) {
+  this.indexes.script.txosBy(this.db, scRange, dbLimit, callback)
 }
 
 // returns a txo { txId, vout, value, script }, by key { txId, vout }
-Indexd.prototype.txoByTxo = function (txId, vout, callback) {
-  this.indexes.txo.txoBy(this.db, { txId, vout }, callback)
+Indexd.prototype.txoByTxo = function (txo, callback) {
+  this.indexes.txo.txoBy(this.db, txo, callback)
 }
 
-// returns a list of (unspent) txos { txId, vout, height, value }, by script id
+// returns a list of (unspent) txos { txId, vout, height, value }, by { scId, heightRange }
 // XXX: despite txo queries being bound by heightRange, the UTXO status is up-to-date
-Indexd.prototype.utxosByScriptId = function (scId, heightRange, callback, dbLimit) {
-  this.txosByScriptId(scId, heightRange, (err, txos) => {
+Indexd.prototype.utxosByScriptRange = function (scRange, dbLimit, callback) {
+  this.txosByScriptRange(scRange, dbLimit, (err, txos) => {
     if (err) return callback(err)
 
     let taskMap = {}
@@ -315,7 +315,7 @@ Indexd.prototype.utxosByScriptId = function (scId, heightRange, callback, dbLimi
 
       callback(null, unspentMap)
     })
-  }, dbLimit)
+  })
 }
 
 module.exports = Indexd
