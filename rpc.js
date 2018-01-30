@@ -51,6 +51,8 @@ function block (rpc, blockId, done) {
     delete block.nextblockhash
     block.prevBlockId = block.previousblockhash
     delete block.prevblockhash
+    block.medianTime = block.mediantime
+    delete block.mediantime
 
     block.transactions = block.tx.map(t => augment(t))
     delete block.tx

@@ -5,6 +5,7 @@ let parallel = require('run-parallel')
 let rpcUtil = require('./rpc')
 
 let FeeIndex = require('./indexes/fee')
+let MtpIndex = require('./indexes/mediantime')
 let ScriptIndex = require('./indexes/script')
 let TxIndex = require('./indexes/tx')
 let TxinIndex = require('./indexes/txin')
@@ -20,11 +21,12 @@ function Indexd (db, rpc) {
   this.emitter = new EventEmitter() // TODO: bind to this
   this.emitter.setMaxListeners(Infinity)
   this.indexes = {
+    fee: new FeeIndex(),
+    mtp: new MtpIndex(),
     script: new ScriptIndex(),
     tx: new TxIndex(),
     txin: new TxinIndex(),
-    txo: new TxoIndex(),
-    fee: new FeeIndex()
+    txo: new TxoIndex()
   }
 }
 
