@@ -52,7 +52,7 @@ Indexd.prototype.connectFrom = function (prevBlockId, blockId, callback) {
       if (tip && tip.blockId !== prevBlockId) continue
       if (indexName === 'fee') {
         if (!tips.txo) continue
-        if (tip && tips.fee.height >= tips.txo.height) continue
+        if (tip && tips.fee.height > tips.txo.height) continue
       }
 
       todo[indexName] = true
