@@ -6,7 +6,7 @@ An external [bitcoind](https://github.com/bitcoin/bitcoin) index management serv
 
 
 ## Indexes
-By default,  this module maintains script, spents, transaction block, txout and block indexes.
+By default,  this module includes a script, spents, transaction block, txout, tx, median time past and fee indexes.
 The module uses `getblockheader`, `getblockhash`, `getblock` and `getbestblockhash` RPC methods for blockchain synchronization;  and `getrawmempool` for mempool synchronization.
 
 `-txindex` is not required for this module; but is still useful for individual transaction lookup (aka `txHex`).
@@ -15,7 +15,7 @@ See https://github.com/bitcoinjs/indexd/issues/6 if you think an independent tra
 
 ## Usage
 Assumes [`yajrpc`](https://github.com/dcousens/yajrpc) is used for the provided bitcoind RPC object; and [`leveldown`](https://github.com/level/leveldown) for the database object.
-See the [example server](https://github.com/bitcoinjs/private-bitcoin) for an example of a private block-explorer (API) and relevant `indexd` usage.
+See the [example server](https://github.com/bitcoinjs/private-bitcoin) for an example of an express HTTP API using `indexd`.
 
 
 ## LICENSE [ISC](LICENSE)

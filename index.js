@@ -139,26 +139,28 @@ Indexd.prototype.disconnect = function (blockId, callback) {
   })
 }
 
-Indexd.prototype.resync = function (done) {
-  this.emitter.once('resync', done)
-  if (this.syncing) return
-  this.syncing = true
-
+Indexd.prototype.__resync = function (done) {
   debug('resynchronizing')
+
   let self = this
   function fin (err) {
-    self.syncing = false
-    self.emitter.emit('resync', err)
+    if (err) return done(err)
+
+    rpcUtil.mempool(self.rpc, (err, txIds) => {
+      if (err) return done(err)
+
+      parallel(txIds.map((txId) => (next) => self.notify(txId, next)), done)
+    })
   }
 
-  function trySyncFrom (prevBlockId, blockId, confirmations) {
+  function trySyncFrom (prevBlockId, blockId, confirmations, callback) {
     // reset mempools
     for (let indexName in self.indexes) {
       self.indexes[indexName].constructor()
     }
 
     // TODO: if confirmations > 100, go fast
-    self.connectFrom(prevBlockId, blockId, fin)
+    self.connectFrom(prevBlockId, blockId, callback)
   }
 
   function lowestTip (callback) {
@@ -190,7 +192,7 @@ Indexd.prototype.resync = function (done) {
       return rpcUtil.blockIdAtHeight(this.rpc, 0, (err, genesisId) => {
         if (err) return fin(err)
 
-        trySyncFrom(null, genesisId, r.bitcoind.height)
+        trySyncFrom(null, genesisId, r.bitcoind.height, fin)
       })
     }
 
@@ -209,14 +211,28 @@ Indexd.prototype.resync = function (done) {
         return this.disconnect(r.indexd.blockId, (err) => {
           if (err) return fin(err)
 
-          this.resync(fin)
+          this.__resync(fin)
         })
       }
 
       // yes, indexd is behind
       debug('bitcoind is ahead')
-      trySyncFrom(common.blockId, common.nextBlockId, common.confirmations)
+      trySyncFrom(common.blockId, common.nextBlockId, common.confirmations, fin)
     })
+  })
+}
+
+Indexd.prototype.tryResync = function (callback) {
+  if (callback) {
+    this.emitter.once('resync', callback)
+  }
+
+  if (this.syncing) return
+  this.syncing = true
+
+  this.__resync((err) => {
+    this.syncing = false
+    this.emitter.emit('resync', err)
   })
 }
 
