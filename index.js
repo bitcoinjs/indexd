@@ -260,7 +260,7 @@ Indexd.prototype.transactionIdsByScriptRange = function (scRange, dbLimit, callb
     let txIdSet = {}
     let tasks = txos.map((txo) => {
       txIdSet[txo.txId] = true
-      return (next) => this.indexes.txin.txinBy(txo, next)
+      return (next) => this.indexes.txin.txinBy(this.db, txo, next)
     })
 
     parallel(tasks, (err, txins) => {
@@ -299,7 +299,7 @@ Indexd.prototype.utxosByScriptRange = function (scRange, dbLimit, callback) {
       let txoId = txoToString(txo)
 
       unspentMap[txoId] = txo
-      taskMap[txoId] = (next) => this.indexes.txin.txinBy(txo, next)
+      taskMap[txoId] = (next) => this.indexes.txin.txinBy(this.db, txo, next)
     })
 
     parallel(taskMap, (err, txinMap) => {
