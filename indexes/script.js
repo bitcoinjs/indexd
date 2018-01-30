@@ -94,12 +94,11 @@ ScriptIndex.prototype.seenScriptId = function (db, scId, callback) {
   }, (err) => callback(err, result))
 }
 
-// XXX: maxRows defaults to 440, but a FULL block on average contains 4400 txos
-// thereby if heightRange distance is < 2, the limit is ignored
+// XXX: if heightRange distance is < 2, the limit is ignored
+//   -- could be rectified by supporting a minimum txId value (aka, last retrieved)
 //
 // returns a list of { txId, vout, height, value } by { scId, heightRange: [from, to] }
 ScriptIndex.prototype.txosBy = function (db, { scId, heightRange }, maxRows, callback) {
-  maxRows = maxRows || 440
   let [fromHeight, toHeight] = heightRange
   let distance = toHeight - fromHeight
   if (distance < 0) return callback(null, [])
