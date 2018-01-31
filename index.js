@@ -265,14 +265,19 @@ Indexd.prototype.latestFeesForNBlocks = function (nBlocks, callback) {
   this.indexes.fee.latestFeesFor(this.db, nBlocks, callback)
 }
 
+// returns a txo { txId, vout, value, script }, by key { txId, vout }
+Indexd.prototype.txoByTxo = function (txo, callback) {
+  this.indexes.txo.txoBy(this.db, txo, callback)
+}
+
 // returns whether (true/false) the script id has even been seen
 Indexd.prototype.seenScriptId = function (scId, callback) {
   this.indexes.scripts.seenScriptId(this.db, scId, callback)
 }
 
-// returns a set of txIds with inputs/outputs from/to a { scId, heightRange }
+// returns a list of txIds with inputs/outputs from/to a { scId, heightRange }
 Indexd.prototype.transactionIdsByScriptRange = function (scRange, dbLimit, callback) {
-  this.txosByScriptId(scRange, dbLimit, (err, txos) => {
+  this.txosByScriptRange(scRange, dbLimit, (err, txos) => {
     if (err) return callback(err)
 
     let txIdSet = {}
@@ -289,7 +294,7 @@ Indexd.prototype.transactionIdsByScriptRange = function (scRange, dbLimit, callb
         txIdSet[txin.txId] = true
       })
 
-      callback(null, txIdSet)
+      callback(null, Object.keys(txIdSet))
     })
   })
 }
@@ -297,11 +302,6 @@ Indexd.prototype.transactionIdsByScriptRange = function (scRange, dbLimit, callb
 // returns a list of txos { txId, vout, height, value } by { scId, heightRange }
 Indexd.prototype.txosByScriptRange = function (scRange, dbLimit, callback) {
   this.indexes.script.txosBy(this.db, scRange, dbLimit, callback)
-}
-
-// returns a txo { txId, vout, value, script }, by key { txId, vout }
-Indexd.prototype.txoByTxo = function (txo, callback) {
-  this.indexes.txo.txoBy(this.db, txo, callback)
 }
 
 // returns a list of (unspent) txos { txId, vout, height, value }, by { scId, heightRange }
@@ -315,7 +315,6 @@ Indexd.prototype.utxosByScriptRange = function (scRange, dbLimit, callback) {
 
     txos.forEach((txo) => {
       let txoId = txoToString(txo)
-
       unspentMap[txoId] = txo
       taskMap[txoId] = (next) => this.indexes.txin.txinBy(this.db, txo, next)
     })
