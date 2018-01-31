@@ -89,19 +89,23 @@ ScriptIndex.prototype.disconnect = function (atomic, block) {
 let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
 let MAX64 = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
 
-// returns true/false if scId is known
+// returns the height at scId was first-seen (-1 if unconfirmed)
 ScriptIndex.prototype.seenScriptId = function (db, scId, callback) {
-  let mem = this.scripts[scId]
-  if (mem) return callback(null, true)
-
-  let result = false
+  let result = null
   db.iterator(SCRIPT, {
     gte: { scId, height: 0, txId: ZERO64, vout: 0 },
     lt: { scId, height: 0xffffffff, txId: ZERO64, vout: 0 },
     limit: 1
-  }, () => {
-    result = true
-  }, (err) => callback(err, result))
+  }, ({ height }) => {
+    result = height
+  }, (err) => {
+    if (err) return callback(err)
+    if (result !== null) return callback(null, result)
+
+    let mem = this.scripts[scId]
+    if (mem) return callback(null, -1)
+    callback(null, null)
+  })
 }
 
 // XXX: if heightRange distance is < 2, the limit is ignored
