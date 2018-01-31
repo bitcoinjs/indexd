@@ -90,7 +90,7 @@ let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
 let MAX64 = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
 
 // returns the height at scId was first-seen (-1 if unconfirmed)
-ScriptIndex.prototype.seenScriptId = function (db, scId, callback) {
+ScriptIndex.prototype.firstSeenScriptId = function (db, scId, callback) {
   let result = null
   db.iterator(SCRIPT, {
     gte: { scId, height: 0, txId: ZERO64, vout: 0 },

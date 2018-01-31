@@ -270,9 +270,9 @@ Indexd.prototype.txoByTxo = function (txo, callback) {
   this.indexes.txo.txoBy(this.db, txo, callback)
 }
 
-// returns whether (true/false) the script id has even been seen
-Indexd.prototype.seenScriptId = function (scId, callback) {
-  this.indexes.script.seenScriptId(this.db, scId, callback)
+// returns the height at scId was first-seen (-1 if unconfirmed)
+Indexd.prototype.firstSeenScriptId = function (scId, callback) {
+  this.indexes.script.firstSeenScriptId(this.db, scId, callback)
 }
 
 // returns a list of txIds with inputs/outputs from/to a { scId, heightRange }
