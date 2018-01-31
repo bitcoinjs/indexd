@@ -323,15 +323,17 @@ Indexd.prototype.utxosByScriptRange = function (scRange, dbLimit, callback) {
     parallel(taskMap, (err, txinMap) => {
       if (err) return callback(err)
 
+      let unspents = []
       for (let txoId in txinMap) {
         let txin = txinMap[txoId]
-        if (!txin) continue
 
         // has a txin, therefore spent
-        delete unspentMap[txoId]
+        if (txin) continue
+
+        unspents.push(unspentMap[txoId])
       }
 
-      callback(null, unspentMap)
+      callback(null, unspents)
     })
   })
 }
