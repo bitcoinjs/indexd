@@ -278,7 +278,7 @@ Indexd.prototype.firstSeenScriptId = function (scId, callback) {
   this.indexes.script.firstSeenScriptId(this.db, scId, callback)
 }
 
-// returns a list of txIds with inputs/outputs from/to a { scId, heightRange }
+// returns a list of txIds with inputs/outputs from/to a { scId, heightRange, ?mempool }
 Indexd.prototype.transactionIdsByScriptRange = function (scRange, dbLimit, callback) {
   this.txosByScriptRange(scRange, dbLimit, (err, txos) => {
     if (err) return callback(err)
@@ -302,12 +302,12 @@ Indexd.prototype.transactionIdsByScriptRange = function (scRange, dbLimit, callb
   })
 }
 
-// returns a list of txos { txId, vout, height, value } by { scId, heightRange }
+// returns a list of txos { txId, vout, height, value } by { scId, heightRange, ?mempool }
 Indexd.prototype.txosByScriptRange = function (scRange, dbLimit, callback) {
   this.indexes.script.txosBy(this.db, scRange, dbLimit, callback)
 }
 
-// returns a list of (unspent) txos { txId, vout, height, value }, by { scId, heightRange }
+// returns a list of (unspent) txos { txId, vout, height, value }, by { scId, heightRange, ?mempool }
 // XXX: despite txo queries being bound by heightRange, the UTXO status is up-to-date
 Indexd.prototype.utxosByScriptRange = function (scRange, dbLimit, callback) {
   this.txosByScriptRange(scRange, dbLimit, (err, txos) => {
