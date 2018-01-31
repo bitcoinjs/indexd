@@ -69,7 +69,7 @@ FeeIndex.prototype.connect2ndOrder = function (db, txoIndex, atomic, block, call
 
       let { prevTxId, vout } = input
       txoTasks.push((next) => {
-        txoIndex.txoByTxo(db, { txId: prevTxId, vout }, (err, txo) => {
+        txoIndex.txoBy(db, { txId: prevTxId, vout }, (err, txo) => {
           if (err) return next(err)
           if (!txo) return next(new Error(`Missing ${prevTxId}:${vout}`))
 
