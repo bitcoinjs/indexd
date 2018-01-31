@@ -45,10 +45,10 @@ ScriptIndex.prototype.tip = function (db, callback) {
 ScriptIndex.prototype.mempool = function (tx, events) {
   let { txId, outs } = tx
 
-  outs.forEach(({ script, value, vout }) => {
+  outs.forEach(({ vout, script, value }) => {
     let scId = sha256(script)
     utils.getOrSetDefault(this.scripts, scId, [])
-      .push({ txId, value, vout })
+      .push({ txId, vout, height: -1, value })
 
     if (events) events.push(['script', scId, null, txId, vout, value])
   })
@@ -60,7 +60,7 @@ ScriptIndex.prototype.connect = function (atomic, block, events) {
   transactions.forEach((tx) => {
     let { txId, outs } = tx
 
-    outs.forEach(({ script, value, vout }) => {
+    outs.forEach(({ vout, script, value }) => {
       let scId = sha256(script)
       atomic.put(SCRIPT, { scId, height, txId, vout }, { value })
 
@@ -77,7 +77,7 @@ ScriptIndex.prototype.disconnect = function (atomic, block) {
   transactions.forEach((tx) => {
     let { txId, outs } = tx
 
-    outs.forEach(({ script, vout }) => {
+    outs.forEach(({ vout, script }) => {
       let scId = sha256(script)
       atomic.del(SCRIPT, { scId, height, txId, vout })
     })
@@ -89,7 +89,7 @@ ScriptIndex.prototype.disconnect = function (atomic, block) {
 let ZERO64 = '0000000000000000000000000000000000000000000000000000000000000000'
 let MAX64 = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
 
-// returns the height at scId was first-seen (-1 if unconfirmed)
+// returns the height at scId was first-seen (-1 if unconfirmed, null if unknown)
 ScriptIndex.prototype.firstSeenScriptId = function (db, scId, callback) {
   let result = null
   db.iterator(SCRIPT, {
@@ -112,13 +112,19 @@ ScriptIndex.prototype.firstSeenScriptId = function (db, scId, callback) {
 //   -- could be rectified by supporting a minimum txId value (aka, last retrieved)
 //
 // returns a list of { txId, vout, height, value } by { scId, heightRange: [from, to] }
-ScriptIndex.prototype.txosBy = function (db, { scId, heightRange }, maxRows, callback) {
+ScriptIndex.prototype.txosBy = function (db, { scId, heightRange, mempool }, maxRows, callback) {
   let [fromHeight, toHeight] = heightRange
   let distance = toHeight - fromHeight
   if (distance < 0) return callback(null, [])
   if (distance < 2) maxRows = Infinity
+  fromHeight = Math.min(Math.max(0, fromHeight), 0xffffffff)
+  toHeight = Math.min(Math.max(0, toHeight), 0xffffffff)
 
   let results = []
+  if (mempool && (scId in this.scripts)) {
+    results = this.scripts[scId].concat()
+  }
+
   db.iterator(SCRIPT, {
     gte: { scId, height: fromHeight, txId: ZERO64, vout: 0 },
     lt: { scId, height: toHeight, txId: MAX64, vout: 0xffffffff },

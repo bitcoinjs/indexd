@@ -57,13 +57,14 @@ TxIndex.prototype.disconnect = function (atomic, block) {
   atomic.put(TXTIP, {}, { blockId: block.prevBlockId, height })
 }
 
-// returns the height (-1 if in mempool) of a transaction, by txId
+// returns the height (-1 if unconfirmed, null if unknown) of a transaction, by txId
 TxIndex.prototype.heightBy = function (db, txId, callback) {
   let mem = this.txs[txId]
   if (mem) return callback(null, -1)
 
   db.get(TX, txId, (err, result) => {
     if (err) return callback(err)
+    if (!result) return callback(null, null)
 
     callback(null, result.height)
   })

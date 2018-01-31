@@ -18,4 +18,11 @@ Assumes [`yajrpc`](https://github.com/dcousens/yajrpc) is used for the provided 
 See the [example server](https://github.com/bitcoinjs/private-bitcoin) for an example of an express HTTP API using `indexd`.
 
 
+### Conventions
+When conveying block height, `-1` represents unconfirmed (in the mempool).
+`null` represents unknown or missing.
+
+For example, the height of the transaction `ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff` in the Bitcoin blockchain is `null` (it doesn't exist!).
+
+
 ## LICENSE [ISC](LICENSE)
