@@ -1,3 +1,4 @@
+let crypto = require('crypto')
 let types = require('./types')
 let typeforce = require('typeforce')
 let vstruct = require('varstruct')
@@ -27,6 +28,12 @@ let SCRIPT = {
   ])
 }
 
+function sha256 (buffer) {
+  return crypto.createHash('sha256')
+    .update(buffer)
+    .digest('hex')
+}
+
 function ScriptIndex () {
   this.scripts = {}
 }
@@ -38,7 +45,8 @@ ScriptIndex.prototype.tip = function (db, callback) {
 ScriptIndex.prototype.mempool = function (tx, events) {
   let { txId, outs } = tx
 
-  outs.forEach(({ scId, value, vout }) => {
+  outs.forEach(({ script, value, vout }) => {
+    let scId = sha256(script)
     utils.getOrSetDefault(this.scripts, scId, [])
       .push({ txId, value, vout })
 
@@ -52,7 +60,8 @@ ScriptIndex.prototype.connect = function (atomic, block, events) {
   transactions.forEach((tx) => {
     let { txId, outs } = tx
 
-    outs.forEach(({ scId, value, vout }) => {
+    outs.forEach(({ script, value, vout }) => {
+      let scId = sha256(script)
       atomic.put(SCRIPT, { scId, height, txId, vout }, { value })
 
       if (events) events.push(['script', scId, height, txId, vout, value])
@@ -68,7 +77,8 @@ ScriptIndex.prototype.disconnect = function (atomic, block) {
   transactions.forEach((tx) => {
     let { txId, outs } = tx
 
-    outs.forEach(({ scId, vout }) => {
+    outs.forEach(({ script, vout }) => {
+      let scId = sha256(script)
       atomic.del(SCRIPT, { scId, height, txId, vout })
     })
   })

@@ -1,4 +1,3 @@
-let crypto = require('crypto')
 let debug = require('./debug')('indexd:rpc')
 
 function rpcd (rpc, method, params, done) {
@@ -11,14 +10,7 @@ function rpcd (rpc, method, params, done) {
   })
 }
 
-function sha256 (hex) {
-  return crypto.createHash('sha256')
-    .update(Buffer.from(hex, 'hex'))
-    .digest('hex')
-}
-
 function augment (tx) {
-//    tx.txBuffer = Buffer.from(tx.hex, 'hex')
   delete tx.hex
   tx.txId = tx.txid
   delete tx.txid
@@ -29,7 +21,6 @@ function augment (tx) {
   tx.vout.forEach((output) => {
     output.script = Buffer.from(output.scriptPubKey.hex, 'hex')
     delete output.scriptPubKey
-    output.scId = sha256(output.script)
     output.value = Math.round(output.value * 1e8)
     output.vout = output.n
     delete output.n
