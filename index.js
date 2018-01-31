@@ -272,7 +272,7 @@ Indexd.prototype.txoByTxo = function (txo, callback) {
 
 // returns whether (true/false) the script id has even been seen
 Indexd.prototype.seenScriptId = function (scId, callback) {
-  this.indexes.scripts.seenScriptId(this.db, scId, callback)
+  this.indexes.script.seenScriptId(this.db, scId, callback)
 }
 
 // returns a list of txIds with inputs/outputs from/to a { scId, heightRange }
