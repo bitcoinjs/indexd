@@ -86,8 +86,9 @@ Indexd.prototype.connectFrom = function (prevBlockId, blockId, callback) {
         let self = this
         function loop (err) {
           if (err) return callback(err)
+
           // recurse until nextBlockId is falsy
-          if (!block.nextBlockId) return callback()
+          if (!block.nextBlockId) return callback(null, true)
           self.connectFrom(blockId, block.nextBlockId, callback)
         }
 
@@ -150,22 +151,6 @@ Indexd.prototype.__resync = function (done) {
   debug('resynchronizing')
 
   let self = this
-  function tryMempool (err) {
-    if (err) return done(err)
-
-    rpcUtil.mempool(self.rpc, (err, txIds) => {
-      if (err) return done(err)
-
-      self.clear()
-      parallel(txIds.map((txId) => (next) => self.notify(txId, next)), done)
-    })
-  }
-
-  function trySyncFrom (prevBlockId, blockId, confirmations, callback) {
-    // TODO: if confirmations > 100, go fast
-    self.connectFrom(prevBlockId, blockId, callback)
-  }
-
   function lowestTip (callback) {
     self.tips((err, tips) => {
       if (err) return callback(err)
@@ -195,7 +180,7 @@ Indexd.prototype.__resync = function (done) {
       return rpcUtil.blockIdAtHeight(this.rpc, 0, (err, genesisId) => {
         if (err) return done(err)
 
-        trySyncFrom(null, genesisId, r.bitcoind.height, tryMempool)
+        this.connectFrom(null, genesisId, r.bitcoind.height, done)
       })
     }
 
@@ -220,7 +205,7 @@ Indexd.prototype.__resync = function (done) {
 
       // yes, indexd is behind
       debug('bitcoind is ahead')
-      trySyncFrom(common.blockId, common.nextBlockId, common.confirmations, tryMempool)
+      this.connectFrom(common.blockId, common.nextBlockId, common.confirmations, done)
     })
   })
 }
@@ -233,9 +218,25 @@ Indexd.prototype.tryResync = function (callback) {
   if (this.syncing) return
   this.syncing = true
 
-  this.__resync((err) => {
-    this.syncing = false
-    this.emitter.emit('resync', err)
+  let self = this
+  function fin (err) {
+    self.syncing = false
+    self.emitter.emit('resync', err)
+  }
+
+  this.__resync((err, updated) => {
+    if (err) return fin(err)
+    if (updated) return this.tryResyncMempool(fin)
+    fin()
+  })
+}
+
+Indexd.prototype.tryResyncMempool = function (callback) {
+  rpcUtil.mempool(this.rpc, (err, txIds) => {
+    if (err) return callback(err)
+
+    this.clear()
+    parallel(txIds.map((txId) => (next) => this.notify(txId, next)), callback)
   })
 }
 
