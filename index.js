@@ -139,26 +139,29 @@ Indexd.prototype.disconnect = function (blockId, callback) {
   })
 }
 
+// empties the mempool
+Indexd.prototype.clear = function () {
+  for (let indexName in this.indexes) {
+    this.indexes[indexName].constructor()
+  }
+}
+
 Indexd.prototype.__resync = function (done) {
   debug('resynchronizing')
 
   let self = this
-  function fin (err) {
+  function tryMempool (err) {
     if (err) return done(err)
 
     rpcUtil.mempool(self.rpc, (err, txIds) => {
       if (err) return done(err)
 
+      self.clear()
       parallel(txIds.map((txId) => (next) => self.notify(txId, next)), done)
     })
   }
 
   function trySyncFrom (prevBlockId, blockId, confirmations, callback) {
-    // reset mempools
-    for (let indexName in self.indexes) {
-      self.indexes[indexName].constructor()
-    }
-
     // TODO: if confirmations > 100, go fast
     self.connectFrom(prevBlockId, blockId, callback)
   }
@@ -184,40 +187,40 @@ Indexd.prototype.__resync = function (done) {
     bitcoind: (f) => rpcUtil.tip(this.rpc, f),
     indexd: (f) => lowestTip(f)
   }, (err, r) => {
-    if (err) return fin(err)
+    if (err) return done(err)
 
     // Step 0, genesis?
     if (!r.indexd) {
       debug('genesis')
       return rpcUtil.blockIdAtHeight(this.rpc, 0, (err, genesisId) => {
-        if (err) return fin(err)
+        if (err) return done(err)
 
-        trySyncFrom(null, genesisId, r.bitcoind.height, fin)
+        trySyncFrom(null, genesisId, r.bitcoind.height, tryMempool)
       })
     }
 
     // Step 1, equal?
     debug('...', r)
-    if (r.bitcoind.blockId === r.indexd.blockId) return fin()
+    if (r.bitcoind.blockId === r.indexd.blockId) return done()
 
     // Step 2, is indexd behind? [aka, does bitcoind have the indexd tip]
     rpcUtil.headerJSON(this.rpc, r.indexd.blockId, (err, common) => {
 //        if (err && /not found/.test(err.message)) return fin(err) // uh, burn it to the ground
-      if (err) return fin(err)
+      if (err) return done(err)
 
       // forked?
       if (common.confirmations === -1) {
         debug('forked')
         return this.disconnect(r.indexd.blockId, (err) => {
-          if (err) return fin(err)
+          if (err) return done(err)
 
-          this.__resync(fin)
+          this.__resync(done)
         })
       }
 
       // yes, indexd is behind
       debug('bitcoind is ahead')
-      trySyncFrom(common.blockId, common.nextBlockId, common.confirmations, fin)
+      trySyncFrom(common.blockId, common.nextBlockId, common.confirmations, tryMempool)
     })
   })
 }
