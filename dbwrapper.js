@@ -1,9 +1,11 @@
+//  let debug = require('debug')('db')
 let typeforce = require('typeforce')
 let NIL = Buffer.alloc(0)
 
 function atomic () {
   let batch = this.batch()
 
+//    debug('atomic')
   return {
     del: del.bind(batch),
     put: put.bind(batch),
@@ -15,6 +17,7 @@ function del (type, key, callback) {
   typeforce(type.keyType, key)
   key = type.key.encode(key)
 
+//    debug('del', key.length)
   return this.del(key, callback)
 }
 
@@ -37,6 +40,7 @@ function put (type, key, value, callback) {
 
   key = type.key.encode(key)
   value = type.value ? type.value.encode(value) : NIL
+//    debug('put', key.length, value.length)
 
   return this.put(key, value, callback)
 }
@@ -56,6 +60,8 @@ function iterator (type, options, forEach, callback) {
   options.gte = options.gte && type.key.encode(options.gte)
   options.lt = options.lt && type.key.encode(options.lt)
   options.lte = options.lte && type.key.encode(options.lte)
+  if (!(options.gt || options.gte)) return callback(new RangeError('Missing minimum'))
+  if (!(options.lt || options.lte)) return callback(new RangeError('Missing maximum'))
 
   let iterator = this.iterator(options)
 
@@ -66,8 +72,8 @@ function iterator (type, options, forEach, callback) {
 
     key = type.key.decode(key)
     value = type.value ? type.value.decode(value) : null
+    forEach(key, value, iterator)
 
-    forEach(key, value)
     iterator.next(loop)
   }
 
