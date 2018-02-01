@@ -180,7 +180,7 @@ Indexd.prototype.__resync = function (done) {
       return rpcUtil.blockIdAtHeight(this.rpc, 0, (err, genesisId) => {
         if (err) return done(err)
 
-        this.connectFrom(null, genesisId, r.bitcoind.height, done)
+        this.connectFrom(null, genesisId, done)
       })
     }
 
@@ -205,7 +205,7 @@ Indexd.prototype.__resync = function (done) {
 
       // yes, indexd is behind
       debug('bitcoind is ahead')
-      this.connectFrom(common.blockId, common.nextBlockId, common.confirmations, done)
+      this.connectFrom(common.blockId, common.nextBlockId, done)
     })
   })
 }
