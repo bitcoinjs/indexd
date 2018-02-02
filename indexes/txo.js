@@ -20,7 +20,7 @@ let TXO = {
   }),
   value: vstruct([
     ['value', vstruct.UInt64LE],
-    ['script', vstruct.VarBuffer(vstruct.UInt16LE)]
+    ['script', vstruct.VarBuffer(vstruct.UInt32LE)]
   ])
 }
 
