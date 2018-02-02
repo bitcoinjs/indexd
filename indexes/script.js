@@ -139,4 +139,7 @@ ScriptIndex.prototype.txosBy = function (db, { scId, heightRange, mempool }, max
 }
 
 module.exports = ScriptIndex
-module.exports.TYPE = SCRIPT
+module.exports.types = {
+  data: SCRIPT,
+  tip: SCRIPTTIP
+}

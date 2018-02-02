@@ -138,4 +138,7 @@ FeeIndex.prototype.latestFeesFor = function (db, nBlocks, callback) {
 }
 
 module.exports = FeeIndex
-module.exports.TYPE = FEE
+module.exports.types = {
+  data: FEE,
+  tip: FEETIP
+}

@@ -90,4 +90,7 @@ TxinIndex.prototype.txinBy = function (db, txo, callback) {
 }
 
 module.exports = TxinIndex
-module.exports.TYPE = TXIN
+module.exports.types = {
+  data: TXIN,
+  tip: TXINTIP
+}

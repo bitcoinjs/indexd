@@ -71,4 +71,7 @@ TxIndex.prototype.heightBy = function (db, txId, callback) {
 }
 
 module.exports = TxIndex
-module.exports.TYPE = TX
+module.exports.types = {
+  data: TX,
+  tip: TXTIP
+}

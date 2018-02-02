@@ -38,4 +38,7 @@ MtpIndex.prototype.disconnect = function (atomic, block) {
 }
 
 module.exports = MtpIndex
-module.exports.TYPE = MTP
+module.exports.types = {
+  data: MTP,
+  tip: MTPTIP
+}

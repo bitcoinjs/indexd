@@ -79,4 +79,7 @@ TxoIndex.prototype.txoBy = function (db, txo, callback) {
 }
 
 module.exports = TxoIndex
-module.exports.TYPE = TXO
+module.exports.types = {
+  data: TXO,
+  tip: TXOTIP
+}
