@@ -1,5 +1,6 @@
 let types = require('./types')
 let typeforce = require('typeforce')
+let varuint = require('varuint-bitcoin')
 let vstruct = require('varstruct')
 
 let TXOPREFIX = 0x34
@@ -20,7 +21,7 @@ let TXO = {
   }),
   value: vstruct([
     ['value', vstruct.UInt64LE],
-    ['script', vstruct.VarBuffer(vstruct.UInt32LE)]
+    ['script', vstruct.VarBuffer(varuint)]
   ])
 }
 

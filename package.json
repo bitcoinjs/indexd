@@ -6,7 +6,8 @@
   "dependencies": {
     "run-parallel": "^1.1.6",
     "typeforce": "^1.10.6",
-    "varstruct": "^6.1.1"
+    "varstruct": "^6.1.1",
+    "varuint-bitcoin": "^1.1.0"
   },
   "optionalDependencies": {
     "debug": "*"
