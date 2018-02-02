@@ -62,7 +62,7 @@ TxIndex.prototype.heightBy = function (db, txId, callback) {
   let mem = this.txs[txId]
   if (mem) return callback(null, -1)
 
-  db.get(TX, txId, (err, result) => {
+  db.get(TX, { txId }, (err, result) => {
     if (err) return callback(err)
     if (!result) return callback(null, null)
 
