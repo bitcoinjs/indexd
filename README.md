@@ -15,7 +15,6 @@ See https://github.com/bitcoinjs/indexd/issues/6 if you think an independent tra
 
 ## Usage
 Assumes [`yajrpc`](https://github.com/dcousens/yajrpc) is used for the provided bitcoind RPC object; and [`leveldown`](https://github.com/level/leveldown) for the database object.
-See the [example server](https://github.com/bitcoinjs/private-bitcoin) for an example of an express HTTP API using `indexd`.
 
 
 ### Conventions
