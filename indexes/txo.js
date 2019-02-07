@@ -17,11 +17,13 @@ let TXO = {
   ]),
   valueType: typeforce.compile({
     value: typeforce.UInt53,
-    script: typeforce.Buffer
+    script: typeforce.Buffer,
+    coinbase: typeforce.UInt8
   }),
   value: vstruct([
     ['value', vstruct.UInt64LE],
-    ['script', vstruct.VarBuffer(varuint)]
+    ['script', vstruct.VarBuffer(varuint)],
+    ['coinbase', vstruct.Byte]
   ])
 }
 
@@ -47,8 +49,10 @@ TxoIndex.prototype.connect = function (atomic, block) {
   transactions.forEach((tx) => {
     let { txId, outs } = tx
 
+    let coinbase = (tx.ins.reduce((cb, txin) => cb || ('coinbase' in txin), false))?1:0
+
     outs.forEach(({ script, value, vout }) => {
-      atomic.put(TXO, { txId, vout }, { value, script })
+      atomic.put(TXO, { txId, vout }, { value, script, coinbase })
     })
   })
 
@@ -74,7 +78,7 @@ TxoIndex.prototype.txoBy = function (db, txo, callback) {
   let { txId, vout } = txo
   let mem = this.txos[`${txId}:${vout}`]
   if (mem) return callback(null, mem)
-
+console.log('*****', txo)
   db.get(TXO, txo, callback)
 }
 

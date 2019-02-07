@@ -21,10 +21,12 @@ let SCRIPT = {
     ['vout', vstruct.UInt32LE]
   ]),
   valueType: typeforce.compile({
-    value: typeforce.UInt53
+    value: typeforce.UInt53,
+    coinbase: typeforce.UInt8
   }),
   value: vstruct([
-    ['value', vstruct.UInt64LE]
+    ['value', vstruct.UInt64LE],
+    ['coinbase', vstruct.Byte]
   ])
 }
 
@@ -60,9 +62,11 @@ ScriptIndex.prototype.connect = function (atomic, block, events) {
   transactions.forEach((tx) => {
     let { txId, outs } = tx
 
+    let coinbase = (tx.ins.reduce((cb, txin) => cb || ('coinbase' in txin), false))?1:0
+
     outs.forEach(({ vout, script, value }) => {
       let scId = sha256(script)
-      atomic.put(SCRIPT, { scId, height, txId, vout }, { value })
+      atomic.put(SCRIPT, { scId, height, txId, vout }, { value, coinbase })
 
       if (events) events.push(['script', scId, height, txId, vout, value])
     })
@@ -129,9 +133,9 @@ ScriptIndex.prototype.txosBy = function (db, { scId, heightRange, mempool }, max
     gte: { scId, height: fromHeight, txId: ZERO64, vout: 0 },
     lt: { scId, height: toHeight, txId: MAX64, vout: 0xffffffff },
     limit: maxRows + 1
-  }, ({ height, txId, vout }, { value }, __iterator) => {
+  }, ({ height, txId, vout }, { value, coinbase }, __iterator) => {
     results.push({
-      txId, vout, height, value
+      txId, vout, height, value, coinbase
     })
 
     if (results.length > maxRows) return __iterator.end((err) => callback(err || new RangeError('Exceeded Limit')))
