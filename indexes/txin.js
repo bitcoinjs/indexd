@@ -61,7 +61,7 @@ TxinIndex.prototype.connect = function (atomic, block, events) {
       let { prevTxId, vout } = input
 
       if (!prevTxId) {
-        prevTxId = '0000000000000000000000000000000000000000000000000000000000000000'
+        prevTxId = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
         vout = 0
       }
 

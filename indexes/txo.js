@@ -78,7 +78,7 @@ TxoIndex.prototype.txoBy = function (db, txo, callback) {
   let { txId, vout } = txo
   let mem = this.txos[`${txId}:${vout}`]
   if (mem) return callback(null, mem)
-console.log('*****', txo)
+
   db.get(TXO, txo, callback)
 }
 
