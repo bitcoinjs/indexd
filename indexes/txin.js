@@ -61,8 +61,8 @@ TxinIndex.prototype.connect = function (atomic, block, events) {
       let { prevTxId, vout } = input
 
       if (!prevTxId) {
-        prevTxId = 'ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'
-        vout = 0
+        prevTxId = '0000000000000000000000000000000000000000000000000000000000000000'
+        vout = 0xffffffff
       }
 
       atomic.put(TXIN, { txId: prevTxId, vout }, { txId, vin, coinbase })
