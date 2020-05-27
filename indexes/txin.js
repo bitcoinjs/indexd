@@ -17,11 +17,13 @@ let TXIN = {
   ]),
   valueType: typeforce.compile({
     txId: typeforce.HexN(64),
-    vin: typeforce.UInt32
+    vin: typeforce.UInt32,
+    coinbase: typeforce.UInt8
   }),
   value: vstruct([
     ['txId', vstruct.String(32, 'hex')],
-    ['vin', vstruct.UInt32LE]
+    ['vin', vstruct.UInt32LE],
+    ['coinbase', vstruct.Byte]
   ])
 }
 
@@ -54,10 +56,16 @@ TxinIndex.prototype.connect = function (atomic, block, events) {
     let { txId, ins } = tx
 
     ins.forEach((input, vin) => {
-      if (input.coinbase) return
+      let coinbase = ('coinbase' in input)?1:0
 
       let { prevTxId, vout } = input
-      atomic.put(TXIN, { txId: prevTxId, vout }, { txId, vin })
+
+      if (!prevTxId) {
+        prevTxId = '0000000000000000000000000000000000000000000000000000000000000000'
+        vout = 0xffffffff
+      }
+
+      atomic.put(TXIN, { txId: prevTxId, vout }, { txId, vin, coinbase })
 
       if (events) events.push(['txin', `${prevTxId}:${vout}`, txId, vin])
     })
