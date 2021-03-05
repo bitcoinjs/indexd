@@ -147,30 +147,29 @@ Indexd.prototype.clear = function () {
   }
 }
 
+Indexd.prototype.lowestTip = function(callback) {
+  this.tips((err, tips) => {
+    if (err) return callback(err)
+
+    let lowest
+    for (let key in tips) {
+      let tip = tips[key]
+      if (!tip) return callback()
+      if (!lowest) lowest = tip
+      if (lowest.height < tip.height) continue
+      lowest = tip
+    }
+
+    callback(null, lowest)
+  })
+}
+
 Indexd.prototype.__resync = function (done) {
   debug('resynchronizing')
 
-  let self = this
-  function lowestTip (callback) {
-    self.tips((err, tips) => {
-      if (err) return callback(err)
-
-      let lowest
-      for (let key in tips) {
-        let tip = tips[key]
-        if (!tip) return callback()
-        if (!lowest) lowest = tip
-        if (lowest.height < tip.height) continue
-        lowest = tip
-      }
-
-      callback(null, lowest)
-    })
-  }
-
   parallel({
     bitcoind: (f) => rpcUtil.tip(this.rpc, f),
-    indexd: (f) => lowestTip(f)
+    indexd: (f) => this.lowestTip(f)
   }, (err, r) => {
     if (err) return done(err)
 
